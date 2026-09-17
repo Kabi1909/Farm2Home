@@ -1,4 +1,4 @@
-import { delay } from './api';
+import { delay } from './api.js';
 export async function getPriceSuggestion(data) {
   await delay(1400);
   if (data.simulateError) throw new Error('Price suggestion is temporarily unavailable.');

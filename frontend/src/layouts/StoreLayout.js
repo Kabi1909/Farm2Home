@@ -3,29 +3,34 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   Sprout,
   Heart,
-  ShoppingBag,
+  ShoppingCart,
   Search,
   Menu,
   X,
   ChevronDown,
-  ArrowUpRight,
+  Globe,
   MapPin,
   Truck,
   Bell,
   LogOut,
-  User,
-  Instagram,
-  Facebook,
   ArrowRight,
+  Leaf,
 } from 'lucide-react';
 import { useAuth, useCart, useWishlist, useNotifications, useUI } from '../context/AppContext';
+import Brand from '../components/common/Brand';
+
 export function NotificationDropdown() {
   const [open, setOpen] = useState(false);
   const { notifications, markRead } = useNotifications();
   const { user } = useAuth();
   return (
     <div className="notification-wrap">
-      <button className="icon-btn" aria-label="Notifications" onClick={() => setOpen(!open)}>
+      <button
+        className="icon-btn"
+        aria-label="Notifications"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
         <Bell size={20} />
         {notifications.some((n) => !n.read) && (
           <span className="count">{notifications.filter((n) => !n.read).length}</span>
@@ -66,55 +71,80 @@ export function Navbar() {
   const { user, logout } = useAuth();
   const { cart } = useCart();
   const { wishlist } = useWishlist();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false),
+    [accountOpen, setAccountOpen] = useState(false),
+    [search, setSearch] = useState('');
   const navigate = useNavigate();
+  const links = [
+    ['/', 'Home'],
+    ['/products', 'Shop'],
+    ['/farmers', 'Farmers'],
+    ['/categories', 'Categories'],
+    ['/about', 'About'],
+    ['/contact', 'Contact'],
+  ];
   return (
     <>
       <div className="announcement">
-        <span>
-          <Sprout size={13} /> Rooted in Sri Lanka. Delivered with care.
-        </span>
-        <span>
-          <Truck size={14} /> Fresh from local farms to your doorstep{' '}
-          <span className="divider">|</span>
-          <Link to="/register?role=farmer">
-            Become a farmer <ArrowUpRight size={12} />
-          </Link>
-        </span>
+        <div className="container">
+          <span>
+            <Sprout size={14} />
+            Supporting Sri Lankan Farmers
+          </span>
+          <span>
+            <Truck size={15} />
+            Islandwide Delivery
+          </span>
+          <span>
+            <Leaf size={14} />
+            Fresh & Healthy Food
+          </span>
+          <span className="top-locale">
+            <Globe size={14} />
+            EN <ChevronDown size={11} />
+            <i />
+            <MapPin size={14} />
+            Sri Lanka
+          </span>
+        </div>
       </div>
       <header className="navbar">
         <div className="container nav-inner">
-          <Link to="/" className="logo">
-            <span className="logo-icon">
-              <Sprout size={28} />
-            </span>
-            Farm2Home<span className="lk">LK</span>
-          </Link>
+          <Brand />
           <nav className="desktop-nav">
-            {[
-              ['/', 'Home'],
-              ['/products', 'Shop'],
-              ['/farmers', 'Our Farmers'],
-              ['/categories', 'Categories'],
-              ['/about', 'Our Story'],
-            ].map(([to, label]) => (
+            {links.map(([to, label]) => (
               <NavLink key={to} to={to} end={to === '/'}>
                 {label}
               </NavLink>
             ))}
           </nav>
+          <form
+            className="nav-search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              navigate('/products?search=' + encodeURIComponent(search));
+            }}
+          >
+            <Search size={18} />
+            <input
+              aria-label="Search the marketplace"
+              placeholder="Search products, farmers or locations..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <button aria-label="Submit marketplace search">
+              <Search size={17} />
+            </button>
+          </form>
           <div className="nav-actions">
-            <Link to="/products" aria-label="Search products" className="icon-btn">
-              <Search size={20} />
-            </Link>
             {user?.role !== 'farmer' && (
               <>
                 <Link to="/customer/wishlist" aria-label="Wishlist" className="icon-btn">
-                  <Heart size={20} />
+                  <Heart size={22} />
                   {wishlist.length > 0 && <span className="count">{wishlist.length}</span>}
                 </Link>
                 <Link to="/customer/cart" aria-label="Shopping cart" className="icon-btn">
-                  <ShoppingBag size={20} />
+                  <ShoppingCart size={24} />
                   {cart.length > 0 && (
                     <span className="count">{cart.reduce((s, c) => s + c.quantity, 0)}</span>
                   )}
@@ -124,28 +154,61 @@ export function Navbar() {
             {user ? (
               <>
                 <NotificationDropdown />
-                <Link className="btn small nav-auth" to={'/' + user.role + '/dashboard'}>
-                  {user.name.split(' ')[0]}
-                  <User size={15} />
-                </Link>
+                <div className="account-menu">
+                  <button
+                    className="account-trigger"
+                    onClick={() => setAccountOpen(!accountOpen)}
+                    aria-expanded={accountOpen}
+                  >
+                    <span className="initial-avatar">{user.name[0]}</span>
+                    <span>
+                      <strong>Hello, {user.name.split(' ')[0]}</strong>
+                      <small>{user.role}</small>
+                    </span>
+                    <ChevronDown size={14} />
+                  </button>
+                  {accountOpen && (
+                    <div className="account-popover">
+                      <Link
+                        to={'/' + user.role + '/dashboard'}
+                        onClick={() => setAccountOpen(false)}
+                      >
+                        My dashboard
+                      </Link>
+                      <Link to={'/' + user.role + '/profile'} onClick={() => setAccountOpen(false)}>
+                        My profile
+                      </Link>
+                      <button
+                        onClick={() => {
+                          logout();
+                          setAccountOpen(false);
+                          navigate('/');
+                        }}
+                      >
+                        <LogOut size={15} />
+                        Sign out
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <button
-                  className="icon-btn desktop-only"
+                  className="icon-btn signout-desktop"
                   aria-label="Sign out"
                   onClick={() => {
                     logout();
                     navigate('/');
                   }}
                 >
-                  <LogOut size={18} />
+                  <LogOut size={16} />
                 </button>
               </>
             ) : (
               <>
-                <Link className="login-link" to="/login">
-                  Log in
+                <Link className="btn secondary small nav-auth" to="/login">
+                  Login
                 </Link>
                 <Link className="btn small nav-auth" to="/register">
-                  Join the community <ArrowUpRight size={15} />
+                  Register
                 </Link>
               </>
             )}
@@ -161,18 +224,15 @@ export function Navbar() {
         </div>
         {open && (
           <nav className="mobile-nav" onClick={() => setOpen(false)}>
-            {[
-              ['/', 'Home'],
-              ['/products', 'Shop'],
-              ['/farmers', 'Our Farmers'],
-              ['/categories', 'Categories'],
-              ['/about', 'Our Story'],
-              [user ? '/' + user.role + '/dashboard' : '/login', user ? 'Dashboard' : 'Log in'],
-            ].map(([to, label]) => (
+            {links.map(([to, label]) => (
               <Link key={to} to={to}>
                 {label}
               </Link>
             ))}
+            <Link to={user ? '/' + user.role + '/dashboard' : '/login'}>
+              {user ? 'My dashboard' : 'Login'}
+            </Link>
+            {!user && <Link to="/register">Register</Link>}
             {user && <button onClick={logout}>Sign out</button>}
           </nav>
         )}
@@ -181,59 +241,70 @@ export function Navbar() {
   );
 }
 export function Footer() {
+  const { notify } = useUI();
   return (
-    <footer>
+    <footer className="reference-footer">
       <div className="container footer-grid">
         <div>
-          <Link to="/" className="logo">
-            <Sprout size={29} />
-            Farm2Home<span>LK</span>
-          </Link>
+          <Brand />
+        </div>
+        <div>
+          <h4>Quick Links</h4>
+          <Link to="/">Home</Link>
+          <Link to="/products">Shop</Link>
+          <Link to="/farmers">Farmers</Link>
+          <Link to="/categories">Categories</Link>
+        </div>
+        <div>
+          <h4>Customer Care</h4>
+          <Link to="/about">About Us</Link>
+          <Link to="/contact">Contact</Link>
+          <Link to="/contact#faq">FAQs</Link>
+          <Link to="/contact#delivery">Shipping & Delivery</Link>
+        </div>
+        <div>
+          <h4>Our Mission</h4>
           <p>
-            Fresh food. Fair prices. Stronger communities.
-            <br />
-            Bringing the goodness of Sri Lankan farms
-            <br />
-            closer to your home.
+            To connect Sri Lankan farmers with customers and promote a healthier, more sustainable
+            future.
           </p>
-          <div className="socials">
-            <span aria-label="Sri Lankan community">
-              <Sprout size={18} />
-            </span>
-            <span>Grown locally. Loved everywhere.</span>
-          </div>
         </div>
         <div>
-          <h4>Explore</h4>
-          <Link to="/products">Shop all produce</Link>
-          <Link to="/categories">Shop by category</Link>
-          <Link to="/farmers">Meet our farmers</Link>
-          <Link to="/products?availability=Upcoming+Harvest">Seasonal harvest</Link>
-        </div>
-        <div>
-          <h4>Our community</h4>
-          <Link to="/about">Our story</Link>
+          <h4>Stay Connected</h4>
+          <Link to="/contact">Talk to our community</Link>
           <Link to="/register?role=farmer">Become a farmer</Link>
-          <Link to="/about#how-it-works">How it works</Link>
-          <Link to="/login">My account</Link>
+          <span className="footer-badge">
+            <Leaf size={13} />
+            Support local farmers
+          </span>
         </div>
         <div>
-          <h4>Made for Sri Lanka</h4>
-          <p>
-            <MapPin size={15} /> Connecting all 25 districts
-          </p>
-          <p>
-            <Truck size={15} /> Home delivery & farm pickup
-          </p>
-          <span className="footer-badge">
-            <Sprout size={15} /> Support local. Grow together.
-          </span>
+          <h4>Subscribe to Our Newsletter</h4>
+          <p>Get the latest updates and fresh offers.</p>
+          <form
+            className="footer-subscribe"
+            onSubmit={(e) => {
+              e.preventDefault();
+              localStorage.setItem('f2h:newsletter', e.currentTarget.email.value);
+              notify('Subscription saved locally for this demo.');
+              e.currentTarget.reset();
+            }}
+          >
+            <input
+              name="email"
+              type="email"
+              required
+              aria-label="Newsletter email"
+              placeholder="Your email address"
+            />
+            <button className="btn small">Subscribe</button>
+          </form>
         </div>
       </div>
       <div className="container footer-bottom">
         <span>© {new Date().getFullYear()} Farm2Home LK. All rights reserved.</span>
-        <span>A frontend demonstration • All marketplace data is fictional</span>
-        <span>Made with care in Sri Lanka 🇱🇰</span>
+        <span>Fresh Food　•　Local Farmers　•　A Healthier Sri Lanka</span>
+        <span>Frontend demo · fictional marketplace data</span>
       </div>
     </footer>
   );

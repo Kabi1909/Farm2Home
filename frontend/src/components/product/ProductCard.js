@@ -1,7 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, Plus, MapPin, ShoppingBasket, ArrowRight } from 'lucide-react';
+import { Heart, MapPin, ShoppingCart, ArrowRight, Leaf } from 'lucide-react';
 import { useMarket, useCart, useWishlist, useAuth } from '../../context/AppContext';
 import { Img, PriceDisplay, RatingStars, StockBadge } from '../common/UI';
+import { categoryArt } from '../../data/visuals';
 export default function ProductCard({ product: p }) {
   const { farmers } = useMarket();
   const { addToCart } = useCart();
@@ -15,56 +16,60 @@ export default function ProductCard({ product: p }) {
         <Link to={'/products/' + p.id}>
           <Img src={p.images[0]} alt={p.name} />
         </Link>
-        <span className={'product-tag ' + (p.method === 'Organic' ? 'organic' : '')}>
+        <span className={'product-tag ' + (p.availability === 'Low Stock' ? 'low-stock' : '')}>
           {p.availability === 'Upcoming Harvest'
             ? 'Upcoming harvest'
-            : p.method === 'Organic'
-              ? 'Organic'
-              : p.quality}
+            : p.availability === 'Low Stock'
+              ? 'Low stock'
+              : p.method === 'Organic'
+                ? 'Organic'
+                : 'Fresh'}
         </span>
         <button
           className={'wish-btn ' + (wishlist.includes(p.id) ? 'selected' : '')}
           aria-label={(wishlist.includes(p.id) ? 'Remove from' : 'Add to') + ' wishlist: ' + p.name}
           onClick={() => (user?.role === 'farmer' ? navigate('/unauthorized') : toggleWish(p.id))}
         >
-          <Heart size={18} fill={wishlist.includes(p.id) ? 'currentColor' : 'none'} />
+          <Heart size={22} fill={wishlist.includes(p.id) ? 'currentColor' : 'none'} />
         </button>
       </div>
       <div className="product-body">
-        <div className="between">
-          <span className="product-category">{p.category}</span>
-          <RatingStars rating={p.rating} count={p.reviewCount} />
-        </div>
         <Link to={'/products/' + p.id}>
           <h3>{p.name}</h3>
         </Link>
-        <Link className="farm-label" to={'/farmers/' + p.farmerId}>
-          {farmer?.farm || 'Local family farm'}
+        <Link className="product-farmer" to={'/farmers/' + p.farmerId}>
+          <Img src={farmer?.image} alt="" />
+          <span>
+            {farmer?.farm || 'Local family farm'}
+            <small>
+              <MapPin size={10} />
+              {p.district}
+            </small>
+          </span>
         </Link>
-        <span className="location">
-          <MapPin size={12} />
-          {p.district}
-          <span>•</span>
-          {p.quantity} {p.unit} available
+        <span className="product-category">
+          <Leaf size={12} />
+          {p.category}
+        </span>
+        <RatingStars rating={p.rating} count={p.reviewCount} />
+        <PriceDisplay price={p.price} unit={p.unit} />
+        <span className="product-stock">
+          {p.quantity} {p.unit} available <small>· {p.quality}</small>
         </span>
         <div className="product-bottom">
-          <PriceDisplay price={p.price} unit={p.unit} />
+          <Link to={'/products/' + p.id} aria-label={'View ' + p.name} className="product-view">
+            <ShoppingCart size={15} />
+          </Link>
           <button
-            className="add-btn"
+            className="btn"
             disabled={p.quantity === 0 || p.availability === 'Sold Out'}
             aria-label={'Add ' + p.name + ' to cart'}
             onClick={() => addToCart(p)}
           >
-            {p.availability === 'Upcoming Harvest' ? (
-              <ShoppingBasket size={18} />
-            ) : (
-              <Plus size={20} />
-            )}
+            {p.availability === 'Upcoming Harvest' ? 'Pre-order' : 'Add to Cart'}
           </button>
         </div>
-        {['Sold Out', 'Low Stock', 'Upcoming Harvest'].includes(p.availability) && (
-          <StockBadge status={p.availability} />
-        )}
+        {p.availability === 'Sold Out' && <StockBadge status={p.availability} />}
       </div>
     </article>
   );
@@ -79,15 +84,22 @@ export function ProductGrid({ products }) {
   );
 }
 export function CategoryCard({ name, image, count = 0 }) {
+  const art = categoryArt[name];
   return (
     <Link className="category-card" to={'/products?category=' + encodeURIComponent(name)}>
-      <div>
-        <Img src={image} alt={name} />
+      <div className="category-photo">
+        <Img src={art?.image || image} alt={name} />
       </div>
-      <h3>{name}</h3>
-      <span>
-        {count} products <ArrowRight size={13} />
-      </span>
+      <div className="category-caption">
+        <span className="category-symbol">{art?.symbol || '🌿'}</span>
+        <div>
+          <h3>{name}</h3>
+          <span>{count} Products</span>
+        </div>
+        <span className="category-arrow">
+          <ArrowRight size={13} />
+        </span>
+      </div>
     </Link>
   );
 }

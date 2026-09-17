@@ -50,6 +50,7 @@ export const categories = [
   'Herbs',
   'Seeds',
   'Organic Products',
+  'Dairy',
   'Other Farm Products',
 ];
 export const methods = ['Conventional', 'Organic', 'Natural', 'Hydroponic', 'Other'];
@@ -226,7 +227,7 @@ export const orderSteps = (fulfillment) =>
 export const orders = Array.from({ length: 25 }, (_, i) => {
   const p = products[i % 10];
   const c = customers[i % 5];
-  const status = ['Pending', 'Confirmed', 'Preparing', 'Completed', 'Completed'][i % 5];
+  const status = ['Pending', 'Confirmed', 'Preparing', 'Completed', 'Completed'][Math.floor(i / 5)];
   return {
     id: `F2H-${1041 + i}`,
     customerId: c.id,
@@ -250,7 +251,7 @@ export const orders = Array.from({ length: 25 }, (_, i) => {
     fulfillment: 'delivery',
     payment: 'Cash on Delivery',
     status,
-    date: '2026-09-16',
+    date: `2026-${String(5 + (i % 5)).padStart(2, '0')}-${String(10 + (i % 7)).padStart(2, '0')}`,
     estimatedDate: '2026-09-20',
   };
 });

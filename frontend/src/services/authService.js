@@ -1,6 +1,6 @@
-import { farmers, customers } from '../data/seed';
-import { readStore, writeStore } from '../utils/helpers';
-import { delay } from './api';
+import { farmers, customers } from '../data/seed.js';
+import { readStore, writeStore } from '../utils/helpers.js';
+import { delay } from './api.js';
 export const accounts = () =>
   readStore(
     'accounts',
@@ -19,7 +19,14 @@ export async function register(data) {
   await delay();
   if (accounts().some((a) => a.email.toLowerCase() === data.email.toLowerCase()))
     throw new Error('An account with this email already exists.');
-  const user = { ...data, id: crypto.randomUUID() };
+  const user = {
+    id: crypto.randomUUID(),
+    name: data.name.trim(),
+    email: data.email.trim(),
+    phone: data.phone,
+    password: data.password,
+    role: data.role,
+  };
   writeStore('accounts', [...accounts(), user]);
   const { password: _, ...safe } = user;
   return safe;

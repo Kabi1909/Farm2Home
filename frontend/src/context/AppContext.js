@@ -59,6 +59,29 @@ export function Providers({ children }) {
     return () => window.removeEventListener('storage-error', handle);
   }, []);
   const signIn = (account, remember) => {
+    // Keep the visitor's basket and saved finds when they become a customer.
+    if (!user && account.role === 'customer') {
+      setAllCart((old) => {
+        const merged = [...(old[account.id] || [])];
+        for (const item of old.guest || []) {
+          const product = products.find((p) => p.id === item.productId);
+          if (!product || product.quantity < 1 || !product.enabled || product.draft) continue;
+          const index = merged.findIndex((row) => row.productId === item.productId);
+          const quantity = Math.min(
+            product.quantity,
+            item.quantity + (merged[index]?.quantity || 0),
+          );
+          if (index >= 0) merged[index] = { ...item, quantity };
+          else merged.push({ ...item, quantity });
+        }
+        return { ...old, guest: [], [account.id]: merged };
+      });
+      setAllWish((old) => ({
+        ...old,
+        guest: [],
+        [account.id]: [...new Set([...(old[account.id] || []), ...(old.guest || [])])],
+      }));
+    }
     localStorage.removeItem('f2h:user');
     sessionStorage.removeItem('f2h:user');
     (remember ? localStorage : sessionStorage).setItem('f2h:user', JSON.stringify(account));
@@ -233,7 +256,7 @@ export function Providers({ children }) {
         ['Pending', 'Confirmed'].includes(order.status) &&
         (isCustomer || isFarmer)
       ) &&
-      !(isFarmer && status === next)
+      !(isFarmer && !['Cancelled', 'Completed'].includes(order.status) && status === next)
     )
       throw new Error('This status change is not allowed.');
     setOrders((old) => old.map((o) => (o.id === id ? { ...o, status } : o)));

@@ -32,7 +32,7 @@ export default function ProductForm() {
       if (draft) return draft;
     } catch {}
     return (
-      existing || {
+      (existing ? { ...existing, bulkPrice: existing.bulkPrice || '' } : null) || {
         name: '',
         category: 'Vegetables',
         description: '',
@@ -96,7 +96,8 @@ export default function ProductForm() {
       if (!form.city) e.city = 'Choose a city.';
     }
     if (s === 5) {
-      if (Number(form.price) <= 0) e.price = 'Enter a selling price above zero.';
+      if (!Number.isFinite(Number(form.price)) || Number(form.price) <= 0)
+        e.price = 'Enter a selling price above zero.';
       if (
         form.bulkPrice !== '' &&
         (Number(form.bulkPrice) <= 0 || Number(form.bulkPrice) >= Number(form.price))

@@ -149,7 +149,15 @@ export function Field({ label, error, children, ...props }) {
   return (
     <label className="field">
       <span>{label}</span>
-      {children || <input {...props} />} {error && <small className="error-text">{error}</small>}
+      {children || (
+        <input
+          aria-label={label}
+          aria-invalid={Boolean(error)}
+          {...props}
+          onInput={props.onInput || props.onChange}
+        />
+      )}{' '}
+      {error && <small className="error-text">{error}</small>}
     </label>
   );
 }

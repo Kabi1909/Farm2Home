@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
-  ArrowUpRight,
   Search,
   MapPin,
   Leaf,
@@ -11,18 +10,15 @@ import {
   Sprout,
   Heart,
   Star,
-  Check,
-  ShoppingBasket,
   Handshake,
-  TrendingUp,
-  TrendingDown,
 } from 'lucide-react';
-import { useMarket, useUI } from '../../context/AppContext';
+import { useMarket } from '../../context/AppContext';
 import { images, categories, districts } from '../../data/seed';
 import { money } from '../../utils/helpers';
 import { Img, SectionHeading } from '../../components/common/UI';
 import { ProductGrid, CategoryCard } from '../../components/product/ProductCard';
 import FarmerCard from '../../components/farmer/FarmerCard';
+
 export function HeroSearch() {
   const [search, setSearch] = useState(''),
     [district, setDistrict] = useState('');
@@ -43,406 +39,248 @@ export function HeroSearch() {
         aria-label="Search produce, farmer or city"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="What fresh produce are you looking for?"
+        placeholder="What are you looking for?"
       />
       <label>
-        <MapPin size={17} />
+        <MapPin size={18} />
         <select
           aria-label="Search district"
           value={district}
           onChange={(e) => setDistrict(e.target.value)}
         >
-          <option value="">All districts</option>
+          <option value="">Select Location</option>
           {districts.map((d) => (
             <option key={d}>{d}</option>
           ))}
         </select>
       </label>
-      <button className="btn">
-        Find fresh produce <ArrowRight size={17} />
-      </button>
+      <button className="btn">Search</button>
     </form>
   );
 }
 export default function Home() {
   const { products, farmers } = useMarket();
-  const { notify } = useUI();
-  const [tab, setTab] = useState('All produce');
   const visible = products.filter((p) => p.enabled && !p.draft);
-  const featured = visible
-    .filter(
-      (p) =>
-        tab === 'All produce' || (tab === 'Organic' ? p.method === 'Organic' : p.category === tab),
-    )
-    .slice(0, 4);
+  const fresh = visible.slice(0, 6);
+  const featured = visible.slice(6, 12);
   return (
-    <main>
-      <section className="hero">
-        <div className="container hero-grid">
-          <div className="hero-copy">
-            <span className="hero-kicker">
-              <span /> FRESH. LOCAL. FULL OF GOODNESS.
-            </span>
+    <main className="reference-home">
+      <section className="reference-hero">
+        <div className="container">
+          <div className="reference-hero-copy">
+            <span className="hero-kicker">LOCAL FARMS ・ FRESH PRODUCTS ・ HEALTHY FAMILIES</span>
             <h1>
-              Fresh from
+              Fresh from Sri Lankan
               <br />
-              <em>Sri Lankan farms</em>
-              <br />
-              to your home.
+              Farms to Your Home
             </h1>
             <p>
-              Discover fresh vegetables, fruits, rice, spices and locally
-              <br className="desktop-only" /> grown produce directly from Sri Lankan farmers.
+              Buy fresh vegetables, fruits, rice, spices and other local products
+              <br className="desktop-only" /> directly from trusted farmers.
             </p>
-            <div className="actions">
-              <Link to="/products" className="btn">
-                Shop fresh produce <ArrowUpRight size={18} />
-              </Link>
-              <Link to="/register?role=farmer" className="btn secondary">
-                Sell your harvest <Sprout size={18} />
-              </Link>
-            </div>
-            <div className="hero-social-proof">
-              <div className="avatar-stack">
-                {farmers.slice(0, 4).map((f) => (
-                  <Img src={f.image} alt={f.name} key={f.id} />
-                ))}
-              </div>
-              <div>
-                <span className="stars">★★★★★</span>
-                <p>
-                  Good food. Happy homes. <strong>Growing together.</strong>
-                </p>
-              </div>
+            <HeroSearch />
+            <div className="popular-searches">
+              <span>Popular:</span>
+              {['Tomato', 'Rice', 'Coconut', 'Carrot', 'Cinnamon', 'Organic'].map((t) => (
+                <Link
+                  key={t}
+                  to={'/products?' + (t === 'Organic' ? 'method=Organic' : 'search=' + t)}
+                >
+                  {t}
+                </Link>
+              ))}
             </div>
           </div>
-          <div className="hero-art">
-            <Img
-              src={images.hero}
-              alt="An abundant selection of fresh vegetables at a produce market"
-              className="hero-photo"
-            />
-            <div className="photo-label">
-              <Leaf size={15} /> A little closer to nature.
+          <span className="handwritten">
+            Good Food
+            <br />
+            Brighter Tomorrows
+          </span>
+          <div className="hero-community">
+            <div className="avatar-stack">
+              {farmers.slice(0, 3).map((f) => (
+                <Img src={f.image} alt={f.name} key={f.id} />
+              ))}
             </div>
-            <div className="farm-stamp">
-              <Sprout size={27} />
-              <span>FARM FRESH</span>
-              <strong>100%</strong>
-              <small>LOCALLY GROWN</small>
-            </div>
-            <div className="harvest-note">
-              <span>
-                <Check size={21} />
-              </span>
-              <div>
-                <strong>Harvested with care</strong>
-                <small>From real farms. By real people.</small>
-              </div>
-            </div>
-            <div className="hero-dots" />
-          </div>
-        </div>
-        <div className="container search-container">
-          <HeroSearch />
-          <div className="trending">
-            <span>In season:</span>
-            {['Tomato', 'Mango', 'Carrot', 'Rice'].map((t) => (
-              <Link key={t} to={'/products?search=' + t}>
-                {t}
-              </Link>
-            ))}
-            <span className="search-note">
-              <MapPin size={13} /> Connecting farms across all 25 districts
+            <span>
+              <strong>Growing together</strong>
+              <small>Farmers & happy homes</small>
             </span>
           </div>
         </div>
       </section>
-      <section className="benefits-bar container">
-        {[
-          [Sprout, 'Straight from the farm', 'Less travel. More freshness.'],
-          [Handshake, 'Fair for everyone', 'Better value. Happier farmers.'],
-          [ShieldCheck, 'Quality you can trust', 'Carefully grown, honestly shared.'],
-          [Truck, 'Your way to fresh', 'Home delivery or farm pickup.'],
-        ].map(([Icon, title, text]) => (
-          <div key={title}>
-            <Icon size={26} />
-            <div>
-              <strong>{title}</strong>
-              <p>{text}</p>
+      <section className="reference-benefits">
+        <div className="container">
+          {[
+            [Sprout, 'Direct from Farmers', 'No unnecessary intermediaries'],
+            [ShieldCheck, 'Fresh & Quality Products', 'Naturally grown, carefully selected'],
+            [Truck, 'Islandwide Delivery', 'From farm to your doorstep'],
+            [Heart, 'Support Local Communities', 'Stronger farmers, healthier Sri Lanka'],
+          ].map(([Icon, title, text]) => (
+            <div key={title}>
+              <span>
+                <Icon size={31} />
+              </span>
+              <div>
+                <strong>{title}</strong>
+                <p>{text}</p>
+              </div>
             </div>
-          </div>
-        ))}
-      </section>
-      <section className="section container">
-        <SectionHeading
-          eyebrow="GOODNESS IN EVERY CATEGORY"
-          title="What’s fresh on your list?"
-          to="/categories"
-          label="Explore all categories"
-        />
-        <div className="category-grid">
-          {categories.slice(0, 6).map((name, i) => (
-            <CategoryCard
-              key={name}
-              name={name}
-              image={
-                [
-                  images.carrot,
-                  images.mango,
-                  images.rice,
-                  images.spices,
-                  images.coconut,
-                  images.greens,
-                ][i]
-              }
-              count={visible.filter((p) => p.category === name).length}
-            />
           ))}
         </div>
       </section>
-      <section className="section fresh-section">
-        <div className="container">
-          <SectionHeading
-            eyebrow="PICKED WITH CARE, JUST FOR YOU"
-            title="Fresh from the fields"
-            description="Seasonal favourites. Honest prices. A whole lot of freshness."
-            to="/products"
-            label="Shop all produce"
-          />
-          <div className="tabs">
-            {['All produce', 'Vegetables', 'Fruits', 'Organic', 'Rice & Grains'].map((t) => (
-              <button key={t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>
-                {t === 'All produce' && <Leaf size={14} />} {t}
-              </button>
-            ))}
-            <span className="fresh-indicator">
-              <span /> Fresh picks, every day
-            </span>
-          </div>
-          <ProductGrid products={featured} />
-        </div>
-      </section>
-      <section className="container seasonal-banner">
-        <div>
-          <span className="eyebrow">THE SEASON’S SWEETEST PICK</span>
-          <h2>
-            Good things take time.
-            <br />
-            Great harvests are worth the wait.
-          </h2>
-          <p>Get first pick of the next harvest, straight from the grower.</p>
-          <Link className="btn" to="/products?availability=Upcoming+Harvest">
-            Explore upcoming harvests <ArrowUpRight size={17} />
-          </Link>
-        </div>
-        <Img src={images.mango} alt="Ripe seasonal mangoes" />
-        <span className="seasonal-tag">
-          A taste of
-          <br />
-          <strong>the season.</strong>
-        </span>
-      </section>
-      <section className="section container">
+      <section className="container reference-section">
         <SectionHeading
-          eyebrow="KNOW THE HANDS THAT GROW YOUR FOOD"
-          title="Good people. Great produce."
-          description="Meet the local growers bringing a little more goodness to your table."
+          title="Shop by Category"
+          description="Explore a wide range of fresh and local products"
+          to="/categories"
+          label="View All Categories"
+        />
+        <div className="home-category-grid">
+          {categories
+            .filter((c) => c !== 'Seeds')
+            .map((name) => (
+              <CategoryCard
+                key={name}
+                name={name}
+                count={visible.filter((p) => p.category === name).length}
+              />
+            ))}
+        </div>
+      </section>
+      <section className="container reference-section">
+        <SectionHeading
+          title="Fresh Today"
+          description="Handpicked fresh products from our farmers"
+          to="/products"
+          label="View All Products"
+        />
+        <ProductGrid products={fresh} />
+      </section>
+      <section className="container reference-section">
+        <SectionHeading
+          title="Featured Products"
+          description="Local favourites, thoughtfully grown and freshly picked."
+          to="/products?sort=popular"
+          label="Explore More"
+        />
+        <ProductGrid products={featured} />
+      </section>
+      <section className="container reference-section">
+        <SectionHeading
+          title="Meet Our Farmers"
+          description="The people at the heart of Farm2Home LK"
           to="/farmers"
-          label="Meet all our farmers"
+          label="View All Farmers"
         />
         <div className="farmer-grid">
-          {farmers.slice(0, 3).map((f) => (
+          {farmers.slice(0, 4).map((f) => (
             <FarmerCard key={f.id} farmer={f} />
           ))}
         </div>
       </section>
-      <section className="how-section" id="how-it-works">
-        <div className="container">
-          <div className="center-heading">
-            <span className="eyebrow">FARM TO TABLE, MADE SIMPLE</span>
-            <h2>A fresher way to shop.</h2>
-            <p>Good food shouldn’t have to travel far. Or be complicated.</p>
-          </div>
-          <div className="how-grid">
-            {[
-              [
-                Search,
-                '01',
-                'Find your fresh',
-                'Explore seasonal produce from farms across Sri Lanka.',
-              ],
-              [
-                ShoppingBasket,
-                '02',
-                'Make it your basket',
-                'Choose your favourites and order directly from the grower.',
-              ],
-              [
-                Truck,
-                '03',
-                'Bring goodness home',
-                'Get it delivered or enjoy a visit to the farm for pickup.',
-              ],
-            ].map(([Icon, n, title, text]) => (
-              <div key={n}>
-                <div className="step-icon">
-                  <Icon size={28} />
-                  <span>{n}</span>
-                </div>
-                <h3>{title}</h3>
-                <p>{text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-      <section className="section container market-section">
+      <section className="container reference-cta">
         <div>
-          <span className="eyebrow">A LITTLE MARKET KNOW-HOW</span>
-          <h2>
-            Fresh picks.
-            <br />
-            Fair prices.
-          </h2>
-          <p>
-            A snapshot of what’s growing and
-            <br />
-            what it costs in our community.
-          </p>
-          <small>
-            Based on recent Farm2Home marketplace listings.
-            <br />
-            Illustrative mock prices.
-          </small>
-          <Link to="/products" className="text-link">
-            Explore the marketplace <ArrowRight size={16} />
+          <h2>Fresh Harvest. Straight to Your Home.</h2>
+          <p>Get the first pick of the season. Pre-order from your favourite farms.</p>
+          <Link className="btn" to="/products?availability=Upcoming+Harvest">
+            Explore Upcoming Harvests <ArrowRight size={16} />
           </Link>
         </div>
-        <div className="market-table">
-          <div className="market-table-head">
-            <h3>Recent marketplace prices</h3>
-            <span className="badge green">Mock market snapshot</span>
-          </div>
+      </section>
+      <section className="container reference-section" id="how-it-works">
+        <SectionHeading
+          title="From Our Farms to Your Home"
+          description="A simpler way to choose fresh and support local."
+        />
+        <div className="how-grid">
+          {[
+            [Search, 'Discover fresh produce', 'Explore products from Sri Lankan farms.'],
+            [Handshake, 'Buy directly from farmers', 'Choose what you love at a fair price.'],
+            [Truck, 'Enjoy farm-fresh goodness', 'Home delivery or convenient farm pickup.'],
+          ].map(([Icon, title, text]) => (
+            <div key={title}>
+              <div className="step-icon">
+                <Icon size={28} />
+              </div>
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="container reference-section">
+        <SectionHeading
+          title="Recent Marketplace Prices"
+          description="Based on recent Farm2Home marketplace listings. Fictional demo prices."
+        />
+        <div className="reference-prices">
           {[
             ['Tomato', 340, 360, images.tomato],
             ['Carrot', 420, 400, images.carrot],
             ['Potato', 300, 320, images.potato],
             ['Onion', 280, 290, images.onion],
           ].map(([name, price, previous, img]) => (
-            <div className="market-row" key={name}>
+            <Link to={'/products?search=' + name} key={name}>
               <Img src={img} alt={name} />
-              <strong>{name}</strong>
               <span>
-                <b>{money(price)}</b>
-                <small> / kg</small>
-                <small className="previous-price">Previously {money(previous)}</small>
+                <strong>{name}</strong>
+                <b>{money(price)} / kg</b>
+                <small>
+                  Previously {money(previous)} ・{' '}
+                  {(((price - previous) / previous) * 100).toFixed(1)}%
+                </small>
               </span>
-              <svg
-                width="68"
-                height="24"
-                viewBox="0 0 68 24"
-                aria-label={price < previous ? 'Downward price trend' : 'Upward price trend'}
-              >
+              <svg width="65" height="25" viewBox="0 0 65 25" aria-label="Illustrative price trend">
                 <polyline
                   points={
                     price < previous
-                      ? '1,3 12,8 22,5 34,13 45,10 56,19 67,21'
-                      : '1,21 12,16 22,19 34,10 45,13 56,5 67,3'
+                      ? '0,4 13,9 24,6 38,16 52,14 65,22'
+                      : '0,22 13,16 24,19 38,10 52,13 65,3'
                   }
                   fill="none"
-                  stroke={price < previous ? '#2f6b3b' : '#c65d32'}
+                  stroke="#2f6b3b"
                   strokeWidth="2"
                 />
               </svg>
-              <span className={price < previous ? 'trend-down' : 'trend-up'}>
-                {price < previous ? <TrendingDown size={14} /> : <TrendingUp size={14} />}{' '}
-                {Math.abs(((price - previous) / previous) * 100).toFixed(1)}%
-              </span>
-            </div>
+            </Link>
           ))}
         </div>
       </section>
-      <section className="testimonials">
-        <div className="container">
-          <div className="center-heading">
-            <span className="eyebrow">FROM OUR COMMUNITY</span>
-            <h2>A little love from happy homes.</h2>
-          </div>
-          <div className="testimonial-grid">
-            {[
-              [
-                '“The vegetables actually taste like vegetables! Knowing who grows our food makes every meal feel a little more special.”',
-                'Amaya Perera',
-                'Colombo',
-              ],
-              [
-                '“Fresh produce, a fair price, and a real connection with the farmer. This is how shopping should feel.”',
-                'Kasun Fernando',
-                'Kandy',
-              ],
-              [
-                '“Our weekly basket has become a family favourite. Beautiful produce and so much less time at the supermarket.”',
-                'Nethmi Silva',
-                'Galle',
-              ],
-            ].map(([quote, name, location], i) => (
-              <article key={name}>
-                <span className="stars">★★★★★</span>
-                <blockquote>{quote}</blockquote>
-                <div>
-                  <span className="initial-avatar">{name[0]}</span>
-                  <p>
-                    <strong>{name}</strong>
-                    <small>{location} · Demo customer story</small>
-                  </p>
-                </div>
-              </article>
-            ))}
-          </div>
+      <section className="container reference-section">
+        <SectionHeading title="Loved by Our Community" />
+        <div className="testimonial-grid">
+          {[
+            [
+              'Fresh produce, fair prices and a real connection with our farmer. This is how shopping should feel.',
+              'Amaya Perera',
+            ],
+            [
+              'Carefully packed, beautifully fresh vegetables. Our family looks forward to every basket.',
+              'Kasun Fernando',
+            ],
+            [
+              'A simple way to support local farms while bringing better food to our table.',
+              'Nethmi Silva',
+            ],
+          ].map(([text, name]) => (
+            <article key={name}>
+              <span className="stars">★★★★★</span>
+              <blockquote>“{text}”</blockquote>
+              <strong>{name}</strong>
+              <small className="muted"> · Demo customer story</small>
+            </article>
+          ))}
         </div>
       </section>
-      <section className="container farmer-cta">
-        <div className="cta-art">
-          <Sprout size={90} />
-        </div>
+      <section className="container reference-cta">
         <div>
-          <span className="eyebrow">YOUR HARD WORK DESERVES A BIGGER MARKET</span>
-          <h2>
-            You grow the goodness.
-            <br />
-            We help you share it.
-          </h2>
-          <p>Reach more customers, set your own prices, and grow your farm’s future.</p>
+          <h2>Empowering Local Farmers, Together.</h2>
+          <p>You grow the goodness. We help you share it.</p>
+          <Link className="btn" to="/register?role=farmer">
+            Sell Your Harvest <ArrowRight size={16} />
+          </Link>
         </div>
-        <Link to="/register?role=farmer" className="btn light">
-          Start selling your harvest <ArrowUpRight size={18} />
-        </Link>
-      </section>
-      <section className="container newsletter">
-        <div>
-          <h2>A little freshness in your inbox.</h2>
-          <p>Seasonal picks, farm stories, and good things worth sharing.</p>
-        </div>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            notify('You’re on the list! Subscription saved for this demo.');
-            localStorage.setItem('f2h:newsletter', e.currentTarget.email.value);
-            e.currentTarget.reset();
-          }}
-        >
-          <input
-            type="email"
-            name="email"
-            required
-            aria-label="Your email address"
-            placeholder="Your email address"
-          />
-          <button className="btn">
-            Count me in <ArrowRight size={17} />
-          </button>
-        </form>
       </section>
     </main>
   );

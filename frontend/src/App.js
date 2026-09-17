@@ -1,14 +1,13 @@
 import { Component, Suspense, lazy, useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import StoreLayout from './layouts/StoreLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import { ProtectedRoute, RoleRoute } from './components/common/RouteGuards';
 import { EmptyState, LoadingSpinner } from './components/common/UI';
 import Home from './pages/public/Home';
 const Shop = lazy(() => import('./pages/public/Shop'));
-const Categories = lazy(() =>
-  import('./pages/public/Shop').then((m) => ({ default: m.Categories })),
-);
+const Categories = lazy(() => import('./pages/public/Categories'));
+const Contact = lazy(() => import('./pages/public/Contact'));
 const ProductDetails = lazy(() => import('./pages/public/ProductDetails'));
 const Farmers = lazy(() => import('./pages/public/Farmers').then((m) => ({ default: m.Farmers })));
 const FarmerProfile = lazy(() =>
@@ -78,6 +77,7 @@ export default function App() {
             <Route path="farmers/:id" element={<FarmerProfile />} />
             <Route path="categories" element={<Categories />} />
             <Route path="about" element={<About />} />
+            <Route path="contact" element={<Contact />} />
             {['login', 'register', 'forgot-password', 'reset-password'].map((mode) => (
               <Route key={mode} path={mode} element={<Auth mode={mode} />} />
             ))}
@@ -85,6 +85,7 @@ export default function App() {
               {['customer', 'farmer'].map((role) => (
                 <Route key={role} element={<RoleRoute role={role} />}>
                   <Route path={role} element={<DashboardLayout />}>
+                    <Route index element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<Dashboard />} />
                     <Route path="profile" element={<Profile />} />
                     <Route path="orders" element={<Orders />} />

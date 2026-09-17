@@ -13,6 +13,7 @@ import {
   Select,
 } from '../../components/common/UI';
 import { ReviewForm } from '../../components/order/Reviews';
+import DemoOrderButton from '../../components/order/DemoOrderButton';
 export function OrderStatusTracker({ order }) {
   if (order.status === 'Cancelled')
     return <div className="notice error-text">This order was cancelled.</div>;
@@ -92,6 +93,7 @@ export default function Orders() {
       <PageHeading
         eyebrow={farmer ? 'FROM YOUR FARM TO THEIR TABLE' : 'YOUR FARM-TO-HOME JOURNEY'}
         title={farmer ? 'Farm orders' : 'Your orders'}
+        action={farmer ? <DemoOrderButton /> : null}
         description={
           farmer
             ? 'Keep every customer in the loop, from harvest to handover.'

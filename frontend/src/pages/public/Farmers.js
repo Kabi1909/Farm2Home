@@ -17,6 +17,7 @@ import FarmerCard from '../../components/farmer/FarmerCard';
 import { ProductGrid } from '../../components/product/ProductCard';
 import { ReviewCard } from '../../components/order/Reviews';
 import FarmMap from '../../components/map/FarmMap';
+import FarmBanner from '../../components/common/FarmBanner';
 export function Farmers() {
   const { farmers } = useMarket();
   const [filters, setFilters] = useState({
@@ -36,61 +37,100 @@ export function Farmers() {
       (!filters.delivery || f.delivery),
   );
   return (
-    <main className="container page">
-      <PageHeading
-        eyebrow="MEET YOUR GROWERS"
-        title="Good food has a familiar face."
-        description="Discover the people and places behind every fresh pick."
+    <main className="reference-farmers">
+      <FarmBanner
+        title="Our Farmers"
+        subtitle="The heart of Farm2Home LK"
+        description="Meet the local farmers who grow fresh, healthy and high-quality food for a stronger Sri Lanka. Support local. Choose fresh. Build a better tomorrow."
+        variant="farmers"
       />
-      <div className="directory-filters">
-        <Field
-          label="Farmer, farm or main crop"
-          placeholder="Find a grower…"
-          value={filters.search}
-          onChange={(e) => set('search', e.target.value)}
-        />
-        <Select
-          label="District"
-          options={[{ value: '', label: 'All districts' }, ...districts]}
-          value={filters.district}
-          onChange={(e) => set('district', e.target.value)}
-        />
-        <Select
-          label="Farming method"
-          options={[{ value: '', label: 'All methods' }, ...methods]}
-          value={filters.method}
-          onChange={(e) => set('method', e.target.value)}
-        />
-        <Select
-          label="Rating"
-          options={[
-            { value: '', label: 'Any rating' },
-            { value: '4.8', label: '4.8 & above' },
-          ]}
-          value={filters.rating}
-          onChange={(e) => set('rating', e.target.value)}
-        />
-        <Checkbox
-          label="Delivery available"
-          checked={filters.delivery}
-          onChange={(e) => set('delivery', e.target.checked)}
-        />
-      </div>
-      <p className="muted">{filtered.length} local growers</p>
-      {filtered.length ? (
-        <div className="farmer-grid">
-          {filtered.map((f) => (
-            <FarmerCard key={f.id} farmer={f} />
-          ))}
+      <div className="container farmers-content">
+        <div className="directory-filters">
+          <Field
+            label="Farmer, farm or main crop"
+            placeholder="Find a grower…"
+            value={filters.search}
+            onChange={(e) => set('search', e.target.value)}
+          />
+          <Select
+            label="District"
+            options={[{ value: '', label: 'All districts' }, ...districts]}
+            value={filters.district}
+            onChange={(e) => set('district', e.target.value)}
+          />
+          <Select
+            label="Farming method"
+            options={[{ value: '', label: 'All methods' }, ...methods]}
+            value={filters.method}
+            onChange={(e) => set('method', e.target.value)}
+          />
+          <Select
+            label="Rating"
+            options={[
+              { value: '', label: 'Any rating' },
+              { value: '4.8', label: '4.8 & above' },
+            ]}
+            value={filters.rating}
+            onChange={(e) => set('rating', e.target.value)}
+          />
+          <Checkbox
+            label="Delivery available"
+            checked={filters.delivery}
+            onChange={(e) => set('delivery', e.target.checked)}
+          />
         </div>
-      ) : (
-        <EmptyState
-          title="No farmers found."
-          description="Try another location or farming method."
-        />
-      )}
+        <div className="section-heading">
+          <div>
+            <h2>Featured Farmers</h2>
+            <p>Discover trusted growers from different regions of Sri Lanka.</p>
+          </div>
+          <span className="muted">{filtered.length} local growers</span>
+        </div>
+        {filtered.length ? (
+          <div className="farmer-grid">
+            {filtered.map((f) => (
+              <FarmerCard key={f.id} farmer={f} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="No farmers found."
+            description="Try another location or farming method."
+          />
+        )}
+        <div className="farmer-community-stats">
+          <div>
+            <Sprout />
+            <strong>{farmers.length}+</strong>
+            <span>Local Farmers</span>
+          </div>
+          <div>
+            <Truck />
+            <strong>25</strong>
+            <span>Districts Covered</span>
+          </div>
+          <div>
+            <LeafIcon />
+            <strong>Fresh</strong>
+            <span>Seasonal Products</span>
+          </div>
+          <div>
+            <Sprout />
+            <strong>100%</strong>
+            <span>Support Local</span>
+          </div>
+          <blockquote>
+            When you support a local farmer,
+            <br />
+            you support a stronger Sri Lanka.
+          </blockquote>
+        </div>
+      </div>
     </main>
   );
+}
+function LeafIcon() {
+  return <Sprout />;
 }
 export function FarmerProfile() {
   const { id } = useParams();
