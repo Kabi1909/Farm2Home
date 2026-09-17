@@ -1,2 +1,2 @@
 import { repository } from './store';
-export const farmerService=repository('farmers');
+export const farmerService = repository('farmers');

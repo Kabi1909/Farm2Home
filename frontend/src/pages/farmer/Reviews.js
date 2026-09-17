@@ -1,0 +1,76 @@
+import { useState } from 'react';
+import { useAuth, useMarket } from '../../context/AppContext';
+import { PageHeading, Select, EmptyState } from '../../components/common/UI';
+import { ReviewCard } from '../../components/order/Reviews';
+export default function Reviews() {
+  const { user } = useAuth();
+  const { reviews, products } = useMarket();
+  const [product, setProduct] = useState(''),
+    [rating, setRating] = useState(''),
+    [sort, setSort] = useState('latest');
+  const own = reviews
+    .filter(
+      (r) =>
+        r.farmerId === user.id &&
+        (!product || r.productId === product) &&
+        (!rating || r.rating === Number(rating)),
+    )
+    .sort((a, b) =>
+      sort === 'rating' ? b.rating - a.rating : new Date(b.date) - new Date(a.date),
+    );
+  return (
+    <>
+      <PageHeading
+        eyebrow="WORDS THAT HELP YOU GROW"
+        title="Customer reviews"
+        description="A little feedback from the tables you’ve helped fill."
+      />
+      <div className="directory-filters">
+        <Select
+          label="Product"
+          options={[
+            { value: '', label: 'All products' },
+            ...products
+              .filter((p) => p.farmerId === user.id)
+              .map((p) => ({ value: p.id, label: p.name })),
+          ]}
+          value={product}
+          onChange={(e) => setProduct(e.target.value)}
+        />
+        <Select
+          label="Rating"
+          options={[
+            { value: '', label: 'All ratings' },
+            ...'54321'.split('').map((n) => ({ value: n, label: n + ' stars' })),
+          ]}
+          value={rating}
+          onChange={(e) => setRating(e.target.value)}
+        />
+        <Select
+          label="Sort"
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+          options={[
+            { value: 'latest', label: 'Latest first' },
+            { value: 'rating', label: 'Highest rated' },
+          ]}
+        />
+      </div>
+      {own.length ? (
+        <div className="review-grid">
+          {own.map((r) => (
+            <div key={r.id}>
+              <h3>{products.find((p) => p.id === r.productId)?.name || 'Previous product'}</h3>
+              <ReviewCard review={r} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="No reviews in this view."
+          description="Reviews will appear after customers complete their orders."
+        />
+      )}
+    </>
+  );
+}

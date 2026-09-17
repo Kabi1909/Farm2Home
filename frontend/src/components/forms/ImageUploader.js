@@ -1,0 +1,81 @@
+import { Upload, Trash2, Star } from 'lucide-react';
+import { Img } from '../common/UI';
+import { useUI } from '../../context/AppContext';
+export default function ImageUploader({ images, onChange, max = 5 }) {
+  const { notify } = useUI();
+  async function upload(e) {
+    const files = [...e.target.files];
+    if (files.length + images.length > max) {
+      notify(`Choose up to ${max} images.`, 'error');
+      return;
+    }
+    const result = [];
+    for (const file of files) {
+      if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 2 * 1024 * 1024) {
+        notify('Use JPG, PNG, or WebP images under 2 MB.', 'error');
+        continue;
+      }
+      const raw = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+      const compressed = await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, 900 / img.width),
+            canvas = document.createElement('canvas');
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.75));
+        };
+        img.onerror = () => resolve(null);
+        img.src = raw;
+      });
+      if (compressed) result.push(compressed);
+    }
+    onChange([...images, ...result]);
+    e.target.value = '';
+  }
+  return (
+    <div>
+      <label className="upload-zone">
+        <Upload size={28} />
+        <strong>Bring your harvest to life</strong>
+        <span>Upload JPG, PNG or WebP · up to 2 MB each · {max} images maximum</span>
+        <input
+          aria-label="Upload product images"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          multiple={max > 1}
+          onChange={upload}
+        />
+      </label>
+      <div className="upload-previews">
+        {images.map((src, i) => (
+          <div key={i}>
+            <Img src={src} alt={'Uploaded image ' + (i + 1)} />
+            {i === 0 && <span className="badge green">Cover image</span>}
+            <div>
+              <button
+                type="button"
+                aria-label={'Set image ' + (i + 1) + ' as cover'}
+                onClick={() => onChange([src, ...images.filter((_, n) => n !== i)])}
+              >
+                <Star size={16} />
+              </button>
+              <button
+                type="button"
+                aria-label={'Remove image ' + (i + 1)}
+                onClick={() => onChange(images.filter((_, n) => n !== i))}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

@@ -1,3 +1,16 @@
-import { defineConfig } from 'vite';
+import { defineConfig, transformWithEsbuild } from 'vite';
 import react from '@vitejs/plugin-react';
-export default defineConfig({ plugins: [react()], server: { port: 5173 } });
+export default defineConfig({
+  plugins: [
+    {
+      name: 'jsx-in-js',
+      async transform(code, id) {
+        if (/\/src\/.*\.js$/.test(id.replaceAll('\\', '/')))
+          return transformWithEsbuild(code, id, { loader: 'jsx', jsx: 'automatic' });
+      },
+    },
+    react(),
+  ],
+  optimizeDeps: { esbuildOptions: { loader: { '.js': 'jsx' } } },
+  server: { port: 5173 },
+});

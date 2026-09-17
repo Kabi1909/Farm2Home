@@ -1,2 +1,2 @@
 import { repository } from './store';
-export const reviewService=repository('reviews');
+export const reviewService = repository('reviews');

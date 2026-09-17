@@ -1,2 +1,2 @@
 import { repository } from './store';
-export const notificationService=repository('notifications');
+export const notificationService = repository('notifications');

@@ -1,0 +1,82 @@
+import { useState } from 'react';
+import { Star } from 'lucide-react';
+import { useMarket, useAuth, useUI } from '../../context/AppContext';
+import { Field, RatingStars } from '../common/UI';
+export function ReviewCard({ review: r }) {
+  return (
+    <article className="review-card">
+      <div className="between">
+        <div>
+          <strong>{r.customer}</strong>
+          <small>{r.date}</small>
+        </div>
+        <RatingStars rating={r.rating} />
+      </div>
+      <p>{r.comment}</p>
+    </article>
+  );
+}
+export function ReviewForm({ order, item }) {
+  const [rating, setRating] = useState(5),
+    [comment, setComment] = useState('');
+  const { user } = useAuth();
+  const { reviews, setReviews, addNotice } = useMarket();
+  const { notify } = useUI();
+  const existing = reviews.some(
+    (r) => r.orderId === order.id && r.productId === item.productId && r.customerId === user.id,
+  );
+  if (order.status !== 'Completed' || order.customerId !== user.id) return null;
+  if (existing)
+    return <div className="notice">Thank you! Your review for {item.name} has been shared.</div>;
+  return (
+    <form
+      className="panel review-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!comment.trim()) return;
+        setReviews((old) => [
+          {
+            id: crypto.randomUUID(),
+            orderId: order.id,
+            productId: item.productId,
+            farmerId: order.farmerId,
+            customerId: user.id,
+            customer: user.name,
+            rating,
+            comment: comment.trim(),
+            date: new Date().toISOString().slice(0, 10),
+          },
+          ...old,
+        ]);
+        addNotice(order.farmerId, 'A customer shared a new review', '/farmer/reviews');
+        notify('Your review has been posted.');
+      }}
+    >
+      <h3>How was your {item.name}?</h3>
+      <div className="star-picker" role="group" aria-label="Review rating">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            type="button"
+            aria-label={n + ' stars'}
+            aria-pressed={rating === n}
+            key={n}
+            onClick={() => setRating(n)}
+          >
+            <Star fill={n <= rating ? 'currentColor' : 'none'} />
+          </button>
+        ))}
+      </div>
+      <Field label="Your review">
+        <textarea
+          minLength={5}
+          maxLength={1000}
+          required
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder="Tell us about the freshness, quality, and your experience."
+        />
+      </Field>
+      <button className="btn">Share review</button>
+    </form>
+  );
+}

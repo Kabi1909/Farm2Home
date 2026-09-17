@@ -1,0 +1,272 @@
+import { useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  ArrowRight,
+  Leaf,
+  Star,
+  Check,
+  AlertTriangle,
+  Calendar,
+  Package,
+  X,
+  Minus,
+  Plus,
+} from 'lucide-react';
+import { money } from '../../utils/helpers';
+export function Img({ src, alt, ...props }) {
+  return (
+    <img
+      src={src || '/produce-fallback.svg'}
+      alt={alt}
+      loading="lazy"
+      onError={(e) => {
+        e.currentTarget.onerror = null;
+        e.currentTarget.src = '/produce-fallback.svg';
+      }}
+      {...props}
+    />
+  );
+}
+export function PageHeading({ eyebrow, title, description, action }) {
+  return (
+    <div className="page-heading">
+      <div>
+        {eyebrow && <div className="eyebrow">{eyebrow}</div>}
+        <h1>{title}</h1>
+        {description && <p>{description}</p>}
+      </div>
+      {action}
+    </div>
+  );
+}
+export function SectionHeading({ eyebrow, title, description, to, label = 'View all' }) {
+  return (
+    <div className="section-heading">
+      <div>
+        {eyebrow && <div className="eyebrow">{eyebrow}</div>}
+        <h2>{title}</h2>
+        {description && <p>{description}</p>}
+      </div>
+      {to && (
+        <Link className="text-link" to={to}>
+          {label}
+          <ArrowRight size={17} />
+        </Link>
+      )}
+    </div>
+  );
+}
+export function EmptyState({
+  title = 'Nothing here yet',
+  description = 'Your next fresh find is just around the corner.',
+  to = '/products',
+  label = 'Explore the marketplace',
+}) {
+  return (
+    <div className="empty-state">
+      <Leaf size={42} />
+      <h2>{title}</h2>
+      <p>{description}</p>
+      <Link className="btn" to={to}>
+        {label}
+        <ArrowRight size={16} />
+      </Link>
+    </div>
+  );
+}
+export function RatingStars({ rating = 0, count }) {
+  return (
+    <span className="rating">
+      <Star size={14} fill="currentColor" />
+      {Number(rating).toFixed(1)}
+      {count !== undefined && <span>({count})</span>}
+    </span>
+  );
+}
+export function PriceDisplay({ price, unit = 'kg' }) {
+  return (
+    <span className="price">
+      {money(price)} <small>/ {unit}</small>
+    </span>
+  );
+}
+export function StockBadge({ status }) {
+  const Icon =
+    status === 'Available'
+      ? Check
+      : status === 'Upcoming Harvest'
+        ? Calendar
+        : status === 'Low Stock'
+          ? AlertTriangle
+          : Package;
+  return (
+    <span
+      className={
+        'badge ' +
+        (status === 'Available'
+          ? 'green'
+          : status === 'Sold Out' || status === 'Cancelled'
+            ? 'red'
+            : 'amber')
+      }
+    >
+      <Icon size={12} />
+      {status}
+    </span>
+  );
+}
+export function QuantitySelector({ value, onChange, max = 999 }) {
+  return (
+    <div className="quantity">
+      <button
+        type="button"
+        aria-label="Decrease quantity"
+        disabled={value <= 1}
+        onClick={() => onChange(value - 1)}
+      >
+        <Minus size={15} />
+      </button>
+      <input
+        aria-label="Quantity"
+        type="number"
+        min="1"
+        max={max}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
+      <button
+        type="button"
+        aria-label="Increase quantity"
+        disabled={value >= max}
+        onClick={() => onChange(value + 1)}
+      >
+        <Plus size={15} />
+      </button>
+    </div>
+  );
+}
+export function Field({ label, error, children, ...props }) {
+  return (
+    <label className="field">
+      <span>{label}</span>
+      {children || <input {...props} />} {error && <small className="error-text">{error}</small>}
+    </label>
+  );
+}
+export function Select({ label, options, ...props }) {
+  return (
+    <Field label={label}>
+      <select {...props}>
+        {options.map((option) =>
+          typeof option === 'string' ? (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ) : (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ),
+        )}
+      </select>
+    </Field>
+  );
+}
+export function Checkbox({ label, ...props }) {
+  return (
+    <label className="checkbox">
+      <input type="checkbox" {...props} />
+      {label}
+    </label>
+  );
+}
+export function Modal({ title, children, onClose }) {
+  const ref = useRef();
+  useEffect(() => {
+    const previous = document.activeElement;
+    ref.current.showModal();
+    return () => previous?.focus();
+  }, []);
+  return (
+    <dialog
+      ref={ref}
+      onCancel={onClose}
+      onClick={(e) => {
+        if (e.target === ref.current) onClose();
+      }}
+    >
+      <div className="modal-head">
+        <h2>{title}</h2>
+        <button className="icon-btn" aria-label="Close dialog" onClick={onClose}>
+          <X />
+        </button>
+      </div>
+      {children}
+    </dialog>
+  );
+}
+export function ConfirmDialog({ title = 'Are you sure?', description, onConfirm, onClose }) {
+  return (
+    <Modal title={title} onClose={onClose}>
+      <p>{description}</p>
+      <div className="actions">
+        <button className="btn secondary" onClick={onClose}>
+          Keep as is
+        </button>
+        <button
+          className="btn"
+          onClick={() => {
+            onConfirm();
+            onClose();
+          }}
+        >
+          Confirm
+        </button>
+      </div>
+    </Modal>
+  );
+}
+export function Pagination({ page, total, onChange }) {
+  return (
+    total > 1 && (
+      <div className="pagination">
+        <button disabled={page <= 1} onClick={() => onChange(page - 1)}>
+          Previous
+        </button>
+        {Array.from({ length: total }, (_, i) => (
+          <button
+            key={i}
+            className={page === i + 1 ? 'active' : ''}
+            onClick={() => onChange(i + 1)}
+          >
+            {i + 1}
+          </button>
+        ))}
+        <button disabled={page >= total} onClick={() => onChange(page + 1)}>
+          Next
+        </button>
+      </div>
+    )
+  );
+}
+export function LoadingSpinner() {
+  return (
+    <div className="loading" role="status">
+      <span className="spinner" />
+      Loading fresh finds…
+    </div>
+  );
+}
+export function SkeletonCard() {
+  return <div className="skeleton" aria-label="Loading product" />;
+}
+export function Breadcrumbs({ items }) {
+  return (
+    <nav className="breadcrumbs" aria-label="Breadcrumb">
+      <Link to="/">Home</Link>
+      {items.map((item, i) => (
+        <span key={i}>/ {item.to ? <Link to={item.to}>{item.label}</Link> : item.label}</span>
+      ))}
+    </nav>
+  );
+}
