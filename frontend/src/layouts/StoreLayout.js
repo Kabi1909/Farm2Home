@@ -143,10 +143,17 @@ export function Navbar() {
                   <Heart size={22} />
                   {wishlist.length > 0 && <span className="count">{wishlist.length}</span>}
                 </Link>
-                <Link to="/customer/cart" aria-label="Shopping cart" className="icon-btn">
+                <Link
+                  to="/customer/cart"
+                  aria-label="Shopping cart"
+                  className="icon-btn"
+                  data-cart-target="navbar-cart"
+                >
                   <ShoppingCart size={24} />
                   {cart.length > 0 && (
-                    <span className="count">{cart.reduce((s, c) => s + c.quantity, 0)}</span>
+                    <span className="count" data-cart-badge aria-live="polite" aria-atomic="true">
+                      {cart.reduce((s, c) => s + c.quantity, 0)}
+                    </span>
                   )}
                 </Link>
               </>
