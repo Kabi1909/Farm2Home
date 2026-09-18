@@ -6,6 +6,7 @@ import products from './productRoutes.js';
 import uploads from './uploadRoutes.js';
 import cart from './cartRoutes.js';
 import wishlist from './wishlistRoutes.js';
+import orders from './orderRoutes.js';
 const router = Router();
 router.use('/auth', auth);
 router.use(farmer);
@@ -14,7 +15,9 @@ router.use(products);
 router.use(uploads);
 router.use('/cart', cart);
 router.use('/wishlist', wishlist);
+router.use(orders);
 export default router;
+
 
 
 
