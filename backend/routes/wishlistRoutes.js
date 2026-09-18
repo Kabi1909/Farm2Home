@@ -1,0 +1,8 @@
+import { Router } from 'express';
+import * as controller from '../controllers/wishlistController.js';
+import { protect } from '../middleware/authMiddleware.js';
+import { authorize } from '../middleware/roleMiddleware.js';
+import { validateId } from '../middleware/validateRequest.js';
+import { asyncHandler as wrap } from '../utils/asyncHandler.js';
+const router = Router(); router.use(protect, authorize('customer')); router.param('productId', validateId);
+router.get('/', wrap(controller.get)); router.post('/:productId', wrap(controller.write)); router.delete('/:productId', wrap(controller.write)); export default router;
