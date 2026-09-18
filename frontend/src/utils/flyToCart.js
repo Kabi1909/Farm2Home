@@ -67,7 +67,12 @@ export function flyToCart(source, onArrival = () => {}, onDone = () => {}) {
   };
   try {
     const target = [...document.querySelectorAll('[data-cart-target="navbar-cart"]')].find(visible);
-    if (motion.matches || !visible(source) || !target) {
+    if (
+      motion.matches ||
+      !source?.isConnected ||
+      !source.getBoundingClientRect().width ||
+      !target
+    ) {
       cleanup();
       return {
         cancel: cleanup,

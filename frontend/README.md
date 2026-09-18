@@ -177,3 +177,11 @@ The first Home visit records `farm2homeHeroPlayed=true` in sessionStorage. Retur
 `public/images/cinematic-farm.png` is generated reference-guided artwork based on `3D Hero.png`: a warm Sri Lankan farm with tropical fields, distant rocky hills, a rustic canopy, an open wooden tabletop and a Farm2Home produce crate on the right. The asset excludes the reference's website UI, giant flying tomato and motion effects; all text controls and the moving tomato are rendered separately. Other page layouts and mock marketplace flows are unchanged.
 
 Validation: `npm test` includes session/reduced-motion policy, curved trajectory endpoints, responsive landing bounds and mobile particle limits. `npm run build` verifies the separate Home 3D bundle. The Three.js bundle is relatively large, but is deferred and used only by Home.
+
+## Add-to-cart feedback
+
+Product cards and the active product-details gallery share `useFlyToCart.js` and `utils/flyToCart.js`. CartContext validates current stock and updates the real quantity immediately, independently of animation. A fixed decorative image copy follows a measured GSAP arc to the visible navbar cart, then the cart icon and live quantity badge pulse. The accessible success toast names the product. The navbar remains sticky so the destination stays visible when browsing lower product rows.
+
+Reduced motion, missing targets and animation failures retain normal cart behavior and immediate feedback. Independent clones are removed on completion, navigation, scrolling, resizing, visibility changes or reduced-motion changes. Rapid additions are validated against a synchronous cart snapshot; quantity and bulk-price calculations are unchanged. At most eight flights per mounted hook run together, while additional valid cart updates still succeed. No Three.js or additional animation library is used for this interaction.
+
+Validation includes desktop card flight, three rapid additions, product-details quantity 20 with the existing bulk price, stock-limit rejection without a clone, cleanup after navigation, and automated stock/path tests. The final mobile visual check was blocked by the browser approval service usage limit.
