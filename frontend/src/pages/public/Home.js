@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import HomeHero from '../../components/hero/HomeHero';
+
+import { Link } from 'react-router-dom';
 import {
   ArrowRight,
   Search,
@@ -13,51 +14,12 @@ import {
   Handshake,
 } from 'lucide-react';
 import { useMarket } from '../../context/AppContext';
-import { images, categories, districts } from '../../data/seed';
+import { images, categories } from '../../data/seed';
 import { money } from '../../utils/helpers';
 import { Img, SectionHeading } from '../../components/common/UI';
 import { ProductGrid, CategoryCard } from '../../components/product/ProductCard';
 import FarmerCard from '../../components/farmer/FarmerCard';
 
-export function HeroSearch() {
-  const [search, setSearch] = useState(''),
-    [district, setDistrict] = useState('');
-  const navigate = useNavigate();
-  return (
-    <form
-      className="hero-search"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const query = new URLSearchParams();
-        if (search) query.set('search', search);
-        if (district) query.set('district', district);
-        navigate('/products?' + query);
-      }}
-    >
-      <Search size={21} />
-      <input
-        aria-label="Search produce, farmer or city"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="What are you looking for?"
-      />
-      <label>
-        <MapPin size={18} />
-        <select
-          aria-label="Search district"
-          value={district}
-          onChange={(e) => setDistrict(e.target.value)}
-        >
-          <option value="">Select Location</option>
-          {districts.map((d) => (
-            <option key={d}>{d}</option>
-          ))}
-        </select>
-      </label>
-      <button className="btn">Search</button>
-    </form>
-  );
-}
 export default function Home() {
   const { products, farmers } = useMarket();
   const visible = products.filter((p) => p.enabled && !p.draft);
@@ -65,50 +27,7 @@ export default function Home() {
   const featured = visible.slice(6, 12);
   return (
     <main className="reference-home">
-      <section className="reference-hero">
-        <div className="container">
-          <div className="reference-hero-copy">
-            <span className="hero-kicker">LOCAL FARMS ・ FRESH PRODUCTS ・ HEALTHY FAMILIES</span>
-            <h1>
-              Fresh from Sri Lankan
-              <br />
-              Farms to Your Home
-            </h1>
-            <p>
-              Buy fresh vegetables, fruits, rice, spices and other local products
-              <br className="desktop-only" /> directly from trusted farmers.
-            </p>
-            <HeroSearch />
-            <div className="popular-searches">
-              <span>Popular:</span>
-              {['Tomato', 'Rice', 'Coconut', 'Carrot', 'Cinnamon', 'Organic'].map((t) => (
-                <Link
-                  key={t}
-                  to={'/products?' + (t === 'Organic' ? 'method=Organic' : 'search=' + t)}
-                >
-                  {t}
-                </Link>
-              ))}
-            </div>
-          </div>
-          <span className="handwritten">
-            Good Food
-            <br />
-            Brighter Tomorrows
-          </span>
-          <div className="hero-community">
-            <div className="avatar-stack">
-              {farmers.slice(0, 3).map((f) => (
-                <Img src={f.image} alt={f.name} key={f.id} />
-              ))}
-            </div>
-            <span>
-              <strong>Growing together</strong>
-              <small>Farmers & happy homes</small>
-            </span>
-          </div>
-        </div>
-      </section>
+      <HomeHero />
       <section className="reference-benefits">
         <div className="container">
           {[

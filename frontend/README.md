@@ -167,3 +167,13 @@ Home, Shop, Categories, Farmers and Contact follow the supplied reference layout
 `public/images/farmer-portraits.png` was generated in text-to-image mode. Prompt: a seamless four-column, two-row photographic contact sheet of eight distinct fictional Sri Lankan farmers, waist-up in lush fields, varied ages and clothing, holding local produce; equal square cells, no gaps, text or logos. Cards display individual cells using CSS background positioning.
 
 Contact form submissions are stored locally for the demo. No message is sent. The page includes fictional contact details and an approximate regional map.
+
+## Home hero introduction
+
+The only 3D feature is the Home hero (`src/components/hero/`). React Three Fiber renders a procedural, lightly lobed tomato with a green calyx under daylight; Drei supplies the perspective camera. No remote model is required. GSAP coordinates the curved flight, one small bounce, temporary leaf/dust particles and accessible HTML headline reveal. The Canvas renders on demand and stops requesting frames after the introduction. The 3D chunk loads separately from the marketplace.
+
+The first Home visit records `farm2homeHeroPlayed=true` in sessionStorage. Returning to Home displays the resting tomato. Reduced motion skips the introduction; focusing a hero control immediately reveals all content. A resize settles the model at the new responsive anchor. GSAP timelines, media listeners, textures and geometries are cleaned up. An error boundary, context-loss listener and startup timeout retain the static scene and usable HTML if 3D fails. The hero background and forms are available while the 3D chunk loads.
+
+`public/images/cinematic-farm.png` is generated reference-guided artwork based on `3D Hero.png`: a warm Sri Lankan farm with tropical fields, distant rocky hills, a rustic canopy, an open wooden tabletop and a Farm2Home produce crate on the right. The asset excludes the reference's website UI, giant flying tomato and motion effects; all text controls and the moving tomato are rendered separately. Other page layouts and mock marketplace flows are unchanged.
+
+Validation: `npm test` includes session/reduced-motion policy, curved trajectory endpoints, responsive landing bounds and mobile particle limits. `npm run build` verifies the separate Home 3D bundle. The Three.js bundle is relatively large, but is deferred and used only by Home.

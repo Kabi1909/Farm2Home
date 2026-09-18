@@ -1,0 +1,189 @@
+/* Home-only cinematic composition; other marketplace layouts are untouched. */
+.cinematic-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 660px;
+  height: min(780px, 65vw);
+  background: #dde9d8 url('/images/cinematic-farm.png') center / cover no-repeat;
+}
+.cinematic-hero-light {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 28%, #ffffff60, transparent 54%);
+  z-index: 0;
+  pointer-events: none;
+}
+.cinematic-hero-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.cinematic-hero-html {
+  position: relative;
+  z-index: 2;
+  padding: clamp(55px, 6.5vw, 110px) 24px 0;
+  pointer-events: none;
+}
+.cinematic-hero-content {
+  width: min(660px, 100%);
+  margin: auto;
+  text-align: center;
+}
+.cinematic-hero-content h1 {
+  color: #103f2d;
+  font-family: Georgia, serif;
+  font-size: clamp(34px, 3.5vw, 56px);
+  line-height: 1.08;
+  letter-spacing: -1.5px;
+  margin: 0 0 16px;
+  text-wrap: balance;
+}
+.cinematic-hero-content > p {
+  color: #263029;
+  font-size: 16px;
+  line-height: 1.55;
+  max-width: 540px;
+  margin: 0 auto 24px;
+}
+.cinematic-hero-search {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #dce5d9;
+  background: #fff;
+  padding: 6px 6px 6px 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px #214e2c18;
+  text-align: left;
+}
+.cinematic-hero-search > input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  box-shadow: none;
+  padding: 10px 0;
+  font-size: 12px;
+  background: transparent;
+}
+.cinematic-hero-search > label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-left: 1px solid #dce5d9;
+  padding-left: 12px;
+}
+.cinematic-hero-search select {
+  width: 137px;
+  border: 0;
+  font-size: 12px;
+  padding: 8px 0;
+  background: transparent;
+}
+.cinematic-hero-search .btn {
+  padding: 12px 23px;
+}
+.cinematic-hero-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 22px;
+  pointer-events: auto;
+}
+.cinematic-hero .btn {
+  background: #2f6b3b;
+  border-color: #2f6b3b;
+  color: #fff;
+}
+.cinematic-hero .btn.secondary {
+  background: #ffffffed;
+  color: #214e2c;
+}
+.cinematic-hero .btn:hover {
+  background: #214e2c;
+  color: #fff;
+}
+.cinematic-hero :focus-visible {
+  outline: 3px solid #d99a2b;
+  outline-offset: 4px;
+}
+@media (min-width: 1400px) {
+  .cinematic-hero-content {
+    width: 720px;
+  }
+}
+@media (max-width: 999px) {
+  .cinematic-hero {
+    min-height: 620px;
+    height: 76vw;
+  }
+  .cinematic-hero-content {
+    max-width: 590px;
+  }
+  .cinematic-hero-content h1 {
+    font-size: 40px;
+  }
+}
+@media (max-width: 639px) {
+  .cinematic-hero {
+    height: 700px;
+    min-height: 700px;
+    background-size: auto 440px;
+    background-position: 57% bottom;
+    background-color: #f8faf5;
+  }
+  .cinematic-hero-light {
+    background: linear-gradient(#f8faf5 25%, #f8faf5ed 38%, transparent 64%);
+  }
+  .cinematic-hero-html {
+    padding: 35px 18px 0;
+  }
+  .cinematic-hero-content h1 {
+    font-size: clamp(29px, 7.8vw, 38px);
+    letter-spacing: -0.9px;
+  }
+  .cinematic-hero-content > p {
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
+  .cinematic-hero-search {
+    display: grid;
+    grid-template-columns: 20px 1fr auto;
+    gap: 5px 8px;
+    padding: 10px;
+  }
+  .cinematic-hero-search > input {
+    grid-column: 2 / 4;
+    width: 100%;
+    font-size: 11px;
+  }
+  .cinematic-hero-search > label {
+    grid-column: 1 / 3;
+    border: 0;
+    padding: 0;
+  }
+  .cinematic-hero-search select {
+    width: 100%;
+  }
+  .cinematic-hero-search .btn {
+    padding: 9px 18px;
+  }
+  .cinematic-hero-actions {
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .cinematic-hero-actions .btn {
+    font-size: 11px;
+    padding: 11px 12px;
+    min-height: 42px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cinematic-hero [data-hero-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
