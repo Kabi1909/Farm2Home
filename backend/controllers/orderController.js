@@ -3,7 +3,7 @@ import Order from '../models/Order.js';
 import ApiError from '../utils/ApiError.js';
 import { respond } from '../utils/asyncHandler.js';
 import { listPage } from '../utils/pagination.js';
-import { checkout } from '../services/orderService.js';
+import { checkout, transitionOrder } from '../services/orderService.js';
 export async function create(req, res) {
   const key = req.get('Idempotency-Key') || randomUUID();
   if (!/^[a-zA-Z0-9_-]{8,100}$/.test(key)) throw new ApiError(400, 'Invalid idempotency key.');
@@ -21,3 +21,7 @@ export async function detail(req, res) {
   if (String(order[req.user.role === 'farmer' ? 'farmer' : 'customer']) !== req.user.id) throw new ApiError(403, 'You do not own this order.');
   respond(res, order);
 }
+export async function status(req, res) {
+  respond(res, await transitionOrder(req.params.id, req.user, req.path.endsWith('/cancel') ? 'Cancelled' : req.validated.body.status));
+}
+

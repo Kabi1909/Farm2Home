@@ -41,3 +41,39 @@ export async function checkout(customer, input, key, deliveryCharge) {
     return created;
   });
 }
+import { orderSteps } from '../utils/constants.js';
+export function canTransition(current, next, fulfillment) {
+  if (next === 'Cancelled') return current === 'Pending';
+  const steps = orderSteps(fulfillment), index = steps.indexOf(current);
+  return index >= 0 && index < steps.length - 1 && steps[index + 1] === next;
+}
+export async function transitionOrder(orderId, actor, next) {
+  return mongoose.connection.transaction(async (session) => {
+    const order = await Order.findById(orderId).session(session);
+    if (!order) throw new ApiError(404, 'Order not found.');
+    const owner = actor.role === 'farmer' ? order.farmer : order.customer;
+    if (String(owner) !== String(actor._id)) throw new ApiError(403, 'You do not own this order.');
+    if (actor.role === 'customer' && next !== 'Cancelled') throw new ApiError(403, 'Only the farmer can progress an order.');
+    if (!canTransition(order.status, next, order.fulfillmentMethod)) throw new ApiError(409, 'This status transition is not allowed.');
+    if (next === 'Cancelled') {
+      for (const item of order.items) {
+        const product = await Product.findById(item.product).session(session);
+        if (product) {
+          product.quantity += item.quantity;
+          product.orderCount = Math.max(0, product.orderCount - 1);
+          product.availabilityStatus = product.isPreOrder ? 'Upcoming Harvest' : product.quantity < 5 ? 'Low Stock' : 'Available';
+          await product.save({ session });
+        }
+      }
+    }
+    if (next === 'Completed') {
+      order.paymentStatus = 'paid';
+      await FarmerProfile.updateOne({ user: order.farmer }, { $inc: { completedOrders: 1 } }, { session });
+    }
+    order.status = next;
+    order.statusHistory.push({ status: next, changedAt: new Date(), changedBy: actor._id });
+    await order.save({ session });
+    await notify(actor.role === 'farmer' ? order.customer : order.farmer, 'order_status', `${order.orderNumber}: ${next}`, { relatedOrder: order._id }, session);
+    return order;
+  });
+}
