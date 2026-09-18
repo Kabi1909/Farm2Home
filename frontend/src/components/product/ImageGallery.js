@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Maximize } from 'lucide-react';
 import { Img, Modal } from '../common/UI';
-export default function ImageGallery({ images, name }) {
+export default function ImageGallery({ images, name, imageRef }) {
   const [index, setIndex] = useState(0),
     [full, setFull] = useState(false);
   return (
     <div className="gallery">
       <div className="gallery-main">
-        <Img src={images[index]} alt={name} />
+        <Img src={images[index]} alt={name} ref={imageRef} />
         <button
           className="gallery-full icon-btn"
           aria-label="View fullscreen image"

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import useFlyToCart from '../../hooks/useFlyToCart';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Heart, Truck, MapPin, Sprout, ShoppingBag, Calendar } from 'lucide-react';
 import { useMarket, useCart, useWishlist } from '../../context/AppContext';
@@ -21,6 +22,8 @@ export default function ProductDetails() {
   const { id } = useParams();
   const { products, farmers, reviews, recent, setRecent } = useMarket();
   const { addToCart } = useCart();
+  const addWithFlight = useFlyToCart();
+  const mainImage = useRef(null);
   const { wishlist, toggleWish } = useWishlist();
   const [quantity, setQuantity] = useState(1);
   const navigate = useNavigate();
@@ -42,7 +45,7 @@ export default function ProductDetails() {
         ]}
       />
       <div className="product-detail">
-        <ImageGallery images={p.images} name={p.name} />
+        <ImageGallery images={p.images} name={p.name} imageRef={mainImage} />
         <div className="product-detail-copy">
           <div className="between">
             <span className="eyebrow">FRESH FROM {p.district.toUpperCase()}</span>
@@ -84,7 +87,11 @@ export default function ProductDetails() {
           )}
           <div className="buy-row">
             <QuantitySelector value={quantity} max={p.quantity} onChange={setQuantity} />
-            <button className="btn" disabled={!p.quantity} onClick={() => addToCart(p, quantity)}>
+            <button
+              className="btn"
+              disabled={!p.quantity || p.availability === 'Sold Out'}
+              onClick={() => addWithFlight(p, quantity, mainImage.current)}
+            >
               <ShoppingBag size={18} />
               {p.availability === 'Upcoming Harvest' ? 'Pre-order' : 'Add to cart'}
             </button>
