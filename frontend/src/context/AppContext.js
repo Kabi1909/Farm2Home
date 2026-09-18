@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { cartAdditionError } from '../utils/cartValidation';
 import * as seed from '../data/seed';
 import { readStore, writeStore, unitPrice } from '../utils/helpers';
 import { updateAccount } from '../services/authService';
@@ -40,10 +41,17 @@ export function Providers({ children }) {
     [farmers, setFarmers] = usePersist('farmers', seed.farmers),
     [orders, setOrders] = usePersist('orders', seed.orders),
     [reviews, setReviews] = usePersist('reviews', seed.reviews),
-    [allCart, setAllCart] = usePersist('cart', {}),
+    [allCart, persistAllCart] = usePersist('cart', {}),
     [allWish, setAllWish] = usePersist('wishlist', {}),
     [notifications, setNotifications] = usePersist('notifications', seed.notifications),
     [recent, setRecent] = usePersist('recent', []);
+  // Keep synchronous reads current even when several clicks share a React batch.
+  const cartSnapshot = useRef(allCart);
+  const setAllCart = (updater) => {
+    const next = typeof updater === 'function' ? updater(cartSnapshot.current) : updater;
+    cartSnapshot.current = next;
+    persistAllCart(next);
+  };
   const [toast, setToast] = useState(null);
   const notify = (message, type = 'success') => setToast({ message, type, key: Date.now() });
   useEffect(() => {
@@ -113,32 +121,28 @@ export function Providers({ children }) {
       [owner]: typeof updater === 'function' ? updater(old[owner] || []) : updater,
     }));
   const wishlist = allWish[owner] || [];
-  const addToCart = (p, quantity = 1) => {
+  const addToCart = (requested, quantity = 1, { silentSuccess = false } = {}) => {
     if (user?.role === 'farmer') {
       notify('Sign in as a customer to shop.', 'error');
       return false;
     }
-    const existing = cart.find((c) => c.productId === p.id)?.quantity || 0;
-    if (
-      !Number.isInteger(quantity) ||
-      quantity < 1 ||
-      existing + quantity > p.quantity ||
-      !p.enabled ||
-      p.availability === 'Sold Out'
-    ) {
-      notify('Please choose a quantity within available stock.', 'error');
+    const product = products.find((item) => item.id === requested.id);
+    const existing =
+      (cartSnapshot.current[owner] || []).find((item) => item.productId === requested.id)
+        ?.quantity || 0;
+    const error = cartAdditionError(product, quantity, existing);
+    if (error) {
+      notify(error, 'error');
       return false;
     }
     setCart((old) =>
-      old.some((c) => c.productId === p.id)
-        ? old.map((c) => (c.productId === p.id ? { ...c, quantity: c.quantity + quantity } : c))
-        : [...old, { productId: p.id, quantity }],
+      old.some((item) => item.productId === product.id)
+        ? old.map((item) =>
+            item.productId === product.id ? { ...item, quantity: item.quantity + quantity } : item,
+          )
+        : [...old, { productId: product.id, quantity }],
     );
-    notify(
-      p.availability === 'Upcoming Harvest'
-        ? 'Pre-order added to your basket.'
-        : 'Fresh pick added to your basket.',
-    );
+    if (!silentSuccess) notify(`${product.name} added to cart`);
     return true;
   };
   const updateQuantity = (id, quantity) => {
