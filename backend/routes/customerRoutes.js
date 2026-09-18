@@ -1,0 +1,11 @@
+import { Router } from 'express';
+import * as controller from '../controllers/customerController.js';
+import { protect } from '../middleware/authMiddleware.js';
+import { authorize } from '../middleware/roleMiddleware.js';
+import { validateRequest as validate, validateId } from '../middleware/validateRequest.js';
+import { customerProfile, address } from '../validation/schemas.js';
+import { asyncHandler as wrap } from '../utils/asyncHandler.js';
+const router = Router(); router.use(protect, authorize('customer')); router.param('addressId', validateId);
+router.get('/profile', wrap(controller.mine)); router.put('/profile', validate(customerProfile), wrap(controller.update));
+router.post('/addresses', validate(address), wrap(controller.addressWrite)); router.put('/addresses/:addressId', validate(address), wrap(controller.addressWrite)); router.delete('/addresses/:addressId', wrap(controller.addressWrite));
+export default router;
