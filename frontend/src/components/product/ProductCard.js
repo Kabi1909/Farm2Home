@@ -1,18 +1,21 @@
+import { useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Heart, MapPin, ShoppingCart, ArrowRight, Leaf } from 'lucide-react';
-import { useMarket, useCart, useWishlist, useAuth } from '../../context/AppContext';
+import { useMarket, useWishlist, useAuth } from '../../context/AppContext';
+import useFlyToCart from '../../hooks/useFlyToCart';
 import { Img, PriceDisplay, RatingStars, StockBadge } from '../common/UI';
 import { categoryArt } from '../../data/visuals';
 export default function ProductCard({ product: p }) {
   const { farmers } = useMarket();
-  const { addToCart } = useCart();
+  const addWithFlight = useFlyToCart();
+  const imageSource = useRef(null);
   const { wishlist, toggleWish } = useWishlist();
   const { user } = useAuth();
   const navigate = useNavigate();
   const farmer = farmers.find((f) => f.id === p.farmerId);
   return (
     <article className="product-card">
-      <div className="product-image">
+      <div className="product-image" ref={imageSource}>
         <Link to={'/products/' + p.id}>
           <Img src={p.images[0]} alt={p.name} />
         </Link>
@@ -64,7 +67,7 @@ export default function ProductCard({ product: p }) {
             className="btn"
             disabled={p.quantity === 0 || p.availability === 'Sold Out'}
             aria-label={'Add ' + p.name + ' to cart'}
-            onClick={() => addToCart(p)}
+            onClick={() => addWithFlight(p, 1, imageSource.current?.querySelector('img'))}
           >
             {p.availability === 'Upcoming Harvest' ? 'Pre-order' : 'Add to Cart'}
           </button>
