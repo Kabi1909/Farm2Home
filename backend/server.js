@@ -1,4 +1,4 @@
-import { cloudAdapter, processCleanup } from "./services/cloudinaryService.js";
+import { startBackgroundJobs } from "./services/backgroundJobs.js";
 import mongoose from "mongoose";
 import { loadConfig } from "./config/env.js";
 import { connectDB } from "./config/db.js";
@@ -6,17 +6,14 @@ import { createApp } from "./app.js";
 try {
   const config = loadConfig();
   await connectDB(config.MONGO_URI);
-  const cleanup = setInterval(
-    () => processCleanup(cloudAdapter(config)).catch(() => {}),
-    60000,
-  );
-  cleanup.unref();
+  const stopJobs = startBackgroundJobs(config);
   const { default: routes } = await import("./routes/index.js");
   const server = createApp(config, routes).listen(config.PORT, () =>
     console.log(`Farm2Home API listening on port ${config.PORT}`),
   );
   for (const signal of ["SIGTERM", "SIGINT"])
     process.on(signal, () => {
+      stopJobs();
       server.close(async () => {
         await mongoose.disconnect();
         process.exit(0);
