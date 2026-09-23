@@ -70,6 +70,7 @@ test('order and review mappings use actual server snapshots and ownership IDs', 
       .displayName,
     'Tomatoes + 1 more',
   );
+  assert.equal(orderView({ ...order, items: [] }).displayName, 'Farm order');
   assert.equal(order.customerId, 'customer-id');
   assert.equal(order.deliveryFee, 175);
   assert.equal(order.estimatedDate, 'To be confirmed by the farmer');
