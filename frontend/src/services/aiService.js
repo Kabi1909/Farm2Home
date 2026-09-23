@@ -1,5 +1,29 @@
 import { delay } from './api.js';
-export async function getPriceSuggestion(data) {
+import { marketplaceApi } from './marketplaceApi.js';
+
+export const usesPriceApi = import.meta.env?.VITE_PRICE_ADVISOR_MODE === 'api';
+
+export async function getPriceSuggestion(data, { signal } = {}) {
+  if (usesPriceApi) {
+    if (!globalThis.sessionStorage?.getItem('f2h:token')) {
+      throw new Error(
+        'A backend farmer session is required for live estimates. You can still enter your own price.',
+      );
+    }
+    return marketplaceApi.suggestPrice(
+      {
+        product: data.name.trim(),
+        category: data.category,
+        district: data.district,
+        quality: data.quality,
+        quantity: Number(data.quantity),
+        unit: data.unit,
+        harvestDate: data.harvestDate,
+        month: Number(data.harvestDate?.slice(5, 7)),
+      },
+      signal,
+    );
+  }
   await delay(1400);
   if (data.simulateError) throw new Error('Price suggestion is temporarily unavailable.');
   const base = /tomato/i.test(data.name)
@@ -17,4 +41,3 @@ export async function getPriceSuggestion(data) {
     confidence: 'High',
   };
 }
-// Future adapter: return (await api.post('/ai/price-suggestion', data)).data;

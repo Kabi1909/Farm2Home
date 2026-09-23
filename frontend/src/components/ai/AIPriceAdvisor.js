@@ -1,29 +1,56 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Sparkles, ArrowRight, RefreshCw } from 'lucide-react';
-import { getPriceSuggestion } from '../../services/aiService';
+import { getPriceSuggestion, usesPriceApi } from '../../services/aiService';
 import { money } from '../../utils/helpers';
 import { Checkbox } from '../common/UI';
 export default function AIPriceAdvisor({ product, onApply, onManual }) {
-  const [result, setResult] = useState(null),
+  const [prediction, setPrediction] = useState(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [simulateError, setSimulateError] = useState(false);
+  const inputKey = JSON.stringify([
+    product.name,
+    product.category,
+    product.district,
+    product.quality,
+    product.quantity,
+    product.unit,
+    product.harvestDate,
+  ]);
+  const result = prediction?.inputKey === inputKey ? prediction : null;
+  const activeRequest = useRef({ id: 0, controller: null });
+  useEffect(() => {
+    setPrediction(null);
+    setError('');
+    setBusy(false);
+    return () => {
+      activeRequest.current.id += 1;
+      activeRequest.current.controller?.abort();
+    };
+  }, [inputKey]);
   async function suggest() {
+    activeRequest.current.controller?.abort();
+    const controller = new AbortController();
+    const requestId = activeRequest.current.id + 1;
+    activeRequest.current = { id: requestId, controller };
     setBusy(true);
-    setResult(null);
+    setPrediction(null);
     setError('');
     try {
-      setResult(
-        await getPriceSuggestion({
+      const value = await getPriceSuggestion(
+        {
           ...product,
           month: new Date(product.harvestDate).getMonth() + 1,
           simulateError,
-        }),
+        },
+        { signal: controller.signal },
       );
+      if (activeRequest.current.id === requestId) setPrediction({ ...value, inputKey });
     } catch (err) {
-      setError(err.message);
+      if (activeRequest.current.id === requestId && !controller.signal.aborted)
+        setError(err.message);
     } finally {
-      setBusy(false);
+      if (activeRequest.current.id === requestId) setBusy(false);
     }
   }
   return (
@@ -36,7 +63,7 @@ export default function AIPriceAdvisor({ product, onApply, onManual }) {
           <span className="eyebrow">A LITTLE GUIDANCE FOR YOUR HARVEST</span>
           <h2>AI Smart Price Advisor</h2>
         </div>
-        <span className="badge green">Mock AI</span>
+        <span className="badge green">{usesPriceApi ? 'Price estimate' : 'Mock AI'}</span>
       </div>
       <p>Find a thoughtful starting price for your produce. You’re always in control.</p>
       <div className="ai-inputs">
@@ -85,7 +112,17 @@ export default function AIPriceAdvisor({ product, onApply, onManual }) {
             Suggested range: {money(result.minimumPrice)} – {money(result.maximumPrice)} /{' '}
             {product.unit}
           </p>
-          <span className="badge green">{result.confidence} confidence · simulated estimate</span>
+          <span className="badge green">
+            {result.confidence} confidence ·{' '}
+            {usesPriceApi ? 'service estimate' : 'simulated estimate'}
+          </span>
+          {result.marketComparison && (
+            <p>
+              Matching marketplace listings average {money(result.marketComparison.averagePrice)} /{' '}
+              {product.unit}.
+            </p>
+          )}
+          {result.marketNote && <p>{result.marketNote}</p>}
           <div className="actions">
             <button type="button" className="btn" onClick={() => onApply(result.recommendedPrice)}>
               Use {money(result.recommendedPrice)} <ArrowRight size={16} />
@@ -98,6 +135,7 @@ export default function AIPriceAdvisor({ product, onApply, onManual }) {
               aria-label="Refresh suggestion"
               className="icon-btn"
               onClick={suggest}
+              disabled={busy}
             >
               <RefreshCw size={18} />
             </button>
@@ -106,7 +144,9 @@ export default function AIPriceAdvisor({ product, onApply, onManual }) {
       )}
       {error && (
         <div className="ai-result">
-          <h3 className="error-text">{error}</h3>
+          <h3 className="error-text" role="alert">
+            {error}
+          </h3>
           <p>You can continue by entering your own selling price.</p>
           <div className="actions">
             <button type="button" className="btn" onClick={suggest}>
@@ -122,15 +162,17 @@ export default function AIPriceAdvisor({ product, onApply, onManual }) {
         AI price suggestions are estimates based on available marketplace data and may not reflect
         the exact current market price. You can always set your own selling price.
       </p>
-      <Checkbox
-        label="Demo: simulate AI unavailable"
-        checked={simulateError}
-        onChange={(e) => {
-          setSimulateError(e.target.checked);
-          setResult(null);
-          setError('');
-        }}
-      />
+      {!usesPriceApi && (
+        <Checkbox
+          label="Demo: simulate AI unavailable"
+          checked={simulateError}
+          onChange={(e) => {
+            setSimulateError(e.target.checked);
+            setPrediction(null);
+            setError('');
+          }}
+        />
+      )}
     </section>
   );
 }
