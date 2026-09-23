@@ -4,7 +4,20 @@ Express 5 + Mongoose backend for the existing React marketplace. All application
 
 ## Run locally
 
-Use Node.js 22 or newer and a MongoDB replica set (Atlas also works). A standalone MongoDB instance is deliberately rejected: checkout, cancellation, registration and reviews require transactions.
+Use Node.js 22 or newer. For the simplest local setup, run these commands from `backend`:
+
+```powershell
+npm ci
+npm run dev
+```
+
+When `.env` is missing, the development launcher creates it with a random private JWT secret and `DEV_LOCAL_DB=true`. It starts a **persistent local MongoDB replica set** on `127.0.0.1:27018`, then starts the API with file watching on port 5000. Data stays in `backend/.local/mongodb` across restarts; `.local` and `.env` are gitignored. The first run may download a MongoDB binary. Keep only one development launcher running; stop it with Ctrl+C before starting another. It never overwrites an existing `.env` and never seeds or clears data automatically.
+
+The generated development URI is `mongodb://127.0.0.1:27018/farm2home?replicaSet=farm2home-dev`. Run seed/index commands in another terminal while `npm run dev` is running. Managed MongoDB is for local development only and binds to loopback.
+
+### Use your own MongoDB deployment
+
+Set `DEV_LOCAL_DB=false` and configure a MongoDB replica set (Atlas also works). A standalone MongoDB instance is deliberately rejected: checkout, cancellation, registration and reviews require transactions.
 
 From `backend`:
 
@@ -21,6 +34,8 @@ npm run dev
 For an existing local MongoDB installation, start `mongod` with `--replSet rs0 --bind_ip 127.0.0.1 --dbpath <your-development-db-directory>`, then run `rs.initiate()` once in `mongosh`. The example URI uses `replicaSet=rs0`. Do not point tests or seeds at production.
 
 `GET http://localhost:5000/api/health` returns 200 when MongoDB is connected and 503 otherwise. The API starts without Cloudinary or the AI service: image upload and AI endpoints return controlled unavailable responses until configured. Those external credentials/services are not bundled.
+
+`DEV_LOCAL_DB=true` enables the managed local database only for `npm run dev` in development mode. `npm start` always requires an already running database and never generates configuration.
 
 ## Configuration
 

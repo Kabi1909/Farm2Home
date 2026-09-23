@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js",
+    "dev": "node scripts/dev.js",
     "seed": "node seeds/seed.js",
     "db:indexes": "node scripts/createIndexes.js",
     "test:unit": "node --test tests/domain.test.js",
