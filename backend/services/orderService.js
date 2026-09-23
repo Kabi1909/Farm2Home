@@ -61,18 +61,16 @@ export async function checkout(customer, input, key, deliveryCharge) {
         throw new ApiError(409, "Stock changed. Please review your cart.");
       const farmer = String(product.farmer);
       if (!groups.has(farmer)) groups.set(farmer, []);
-      groups
-        .get(farmer)
-        .push({
-          product: product._id,
-          productName: product.name,
-          productImage: product.coverImage?.url || product.images[0]?.url || "",
-          category: product.category,
-          unit: product.unit,
-          ...pricing,
-          isPreOrder: product.isPreOrder,
-          availableDate: product.availableDate,
-        });
+      groups.get(farmer).push({
+        product: product._id,
+        productName: product.name,
+        productImage: product.coverImage?.url || product.images[0]?.url || "",
+        category: product.category,
+        unit: product.unit,
+        ...pricing,
+        isPreOrder: product.isPreOrder,
+        availableDate: product.availableDate,
+      });
       if (remaining < 5)
         await notify(
           product.farmer,

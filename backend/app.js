@@ -40,14 +40,11 @@ export function createApp(config, routes) {
       }),
     );
   app.get("/api/health", (req, res) =>
-    res
-      .status(mongoose.connection.readyState === 1 ? 200 : 503)
-      .json({
-        success: mongoose.connection.readyState === 1,
-        service: "Farm2Home LK API",
-        status:
-          mongoose.connection.readyState === 1 ? "healthy" : "unavailable",
-      }),
+    res.status(mongoose.connection.readyState === 1 ? 200 : 503).json({
+      success: mongoose.connection.readyState === 1,
+      service: "Farm2Home LK API",
+      status: mongoose.connection.readyState === 1 ? "healthy" : "unavailable",
+    }),
   );
   if (routes) app.use("/api", routes);
   app.use(notFoundMiddleware);

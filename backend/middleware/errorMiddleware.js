@@ -20,11 +20,9 @@ export function errorMiddleware(error, req, res, next) {
     message = "Malformed JSON.";
   }
   if (error.publicMessage) message = error.publicMessage;
-  res
-    .status(status)
-    .json({
-      success: false,
-      message,
-      errors: status < 500 ? error.errors || [] : [],
-    });
+  res.status(status).json({
+    success: false,
+    message,
+    errors: status < 500 ? error.errors || [] : [],
+  });
 }

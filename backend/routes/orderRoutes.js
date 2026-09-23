@@ -43,4 +43,3 @@ router.put(
   wrap(controller.status),
 );
 export default router;
-
