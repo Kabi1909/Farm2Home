@@ -1,24 +1,19 @@
-import { Router } from 'express';
-import auth from './authRoutes.js';
-import farmer from './farmerRoutes.js';
-import customer from './customerRoutes.js';
-import products from './productRoutes.js';
-import uploads from './uploadRoutes.js';
-import cart from './cartRoutes.js';
-import wishlist from './wishlistRoutes.js';
-import orders from './orderRoutes.js';
+import { Router } from "express";
+import auth from "./authRoutes.js";
+import farmer from "./farmerRoutes.js";
+import customer from "./customerRoutes.js";
+import products from "./productRoutes.js";
+import uploads from "./uploadRoutes.js";
+import cart from "./cartRoutes.js";
+import wishlist from "./wishlistRoutes.js";
+import orders from "./orderRoutes.js";
 const router = Router();
-router.use('/auth', auth);
+router.use("/auth", auth);
 router.use(farmer);
-router.use('/customer', customer);
+router.use("/customer", customer);
 router.use(products);
 router.use(uploads);
-router.use('/cart', cart);
-router.use('/wishlist', wishlist);
+router.use("/cart", cart);
+router.use("/wishlist", wishlist);
 router.use(orders);
 export default router;
-
-
-
-
-
