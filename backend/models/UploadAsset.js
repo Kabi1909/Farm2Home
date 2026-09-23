@@ -11,6 +11,8 @@ export default mongoose.model(
       kind: { type: String, enum: ["product", "profile"] },
       cleanupPending: { type: Boolean, default: false },
       uploadPending: { type: Boolean, default: false },
+      localData: { type: Buffer, select: false },
+      localMime: { type: String, select: false },
     },
     options,
   ),

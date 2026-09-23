@@ -33,7 +33,7 @@ npm run dev
 
 For an existing local MongoDB installation, start `mongod` with `--replSet rs0 --bind_ip 127.0.0.1 --dbpath <your-development-db-directory>`, then run `rs.initiate()` once in `mongosh`. The example URI uses `replicaSet=rs0`. Do not point tests or seeds at production.
 
-`GET http://localhost:5000/api/health` returns 200 when MongoDB is connected and 503 otherwise. The API starts without Cloudinary or the AI service: image upload and AI endpoints return controlled unavailable responses until configured. Those external credentials/services are not bundled.
+`GET http://localhost:5000/api/health` returns 200 when MongoDB is connected and 503 otherwise. The API starts without Cloudinary or the AI service. In development, empty Cloudinary credentials enable persistent local image storage; the AI endpoint remains unavailable until its service is configured. Those external credentials/services are not bundled.
 
 `DEV_LOCAL_DB=true` enables the managed local database only for `npm run dev` in development mode. `npm start` always requires an already running database and never generates configuration.
 
@@ -131,7 +131,7 @@ Product filters: `search`, `category`, `district`, `city`, `minPrice`, `maxPrice
 }
 ```
 
-Upload first using multipart field **`images`**. Pass returned `{ publicId }` objects in a product's `images` array. Only images owned by the farmer and not attached to another product can be bound; server-stored Cloudinary URLs are authoritative. Accepted files: JPEG, PNG and WebP, at most 2 MB each, with MIME/signature checks. The first image becomes the cover. Profile uploads replace the current user's photo. Removed, failed and abandoned product uploads enter a persistent cleanup queue; abandoned unbound product assets expire after 24 hours. Cleanup retries run every minute when Cloudinary is configured.
+Upload first using multipart field **`images`**. Pass returned `{ publicId }` objects in a product's `images` array. Only images owned by the farmer and not attached to another product can be bound; server-stored image URLs are authoritative. Accepted files: JPEG, PNG and WebP, at most 2 MB each, with MIME/signature checks. The first image becomes the cover. Profile uploads replace the current user's photo. Removed, failed and abandoned product uploads enter a persistent cleanup queue; abandoned unbound product assets expire after 24 hours. Cleanup retries run every minute in development or when Cloudinary is configured.
 
 ### Checkout and order rules
 
@@ -177,7 +177,7 @@ The React frontend now loads marketplace and account state from these APIs. Conf
 
 The frontend adapters map IDs, image assets, bulk thresholds, availability and order snapshots into the existing views. Cart updates use server cart-item IDs and totals. The API now exposes public GET /reviews, authenticated customer GET /reviews/my, and authenticated PUT /auth/password with currentPassword, password and confirmPassword. Changing a password revokes previous tokens and returns a new token for the current session.
 
-Image uploads require Cloudinary configuration. AI suggestions require the configured external price service; unavailability remains an explicit error and manual pricing is supported. Contact messages, newsletters and forgotten-password recovery are not implemented and cannot report a successful submission in the frontend.
+Image uploads use persistent MongoDB storage during local development when all Cloudinary credentials are empty. Cloudinary is used when configured and is required for production. AI suggestions require the configured external price service; unavailability remains an explicit error and manual pricing is supported. Contact messages, newsletters and forgotten-password recovery are not implemented and cannot report a successful submission in the frontend.
 
 Frontend integration tests in the backend test suite import the frontend API adapters, so install dependencies in both backend and frontend before running the complete suite. Test databases are isolated and do not modify local application records.
 
@@ -202,7 +202,7 @@ npm run format:check
 
 Integration tests exercise hashing/login/logout, role and ownership failures, multi-farmer checkout, bulk prices, stock contention, rollback, cancellation, reviews, notifications, analytics, prices and upload cleanup. A local HTTP fixture tests the external prediction contract including timeout/invalid/redirect failures; it is not a trained AI model. Cloudinary tests use an injected adapter and do not prove live credentials or remote image delivery.
 
-Deployment limits: rate-limit state and product-view deduplication are in-process, so use a shared store for multiple API replicas. Restrict trusted proxy configuration to the actual deployment network rather than enabling arbitrary forwarded IPs. Configure HTTPS at the edge. MongoDB indexes, backups, actual Cloudinary credentials, an external AI service and full frontend Context migration remain deployment setup work.
+Deployment limits: rate-limit state and product-view deduplication are in-process, so use a shared store for multiple API replicas. Restrict trusted proxy configuration to the actual deployment network rather than enabling arbitrary forwarded IPs. Configure HTTPS at the edge. MongoDB indexes, backups, actual Cloudinary credentials, and an external AI service remain deployment setup work.
 
 ### Verification recorded on 2026-09-23
 
@@ -210,3 +210,9 @@ Deployment limits: rate-limit state and product-view deduplication are in-proces
 - Frontend: all 17 existing tests passed; production Vite build passed. Vite reports the existing large lazy-loaded 3D hero chunk.
 - Backend formatting check and Git whitespace checks passed.
 - Live Cloudinary credentials, a trained external model and a deployed database were not supplied or exercised.
+
+### Local development image storage
+
+With NODE_ENV=development and all three CLOUDINARY_* credentials empty, verified JPG/PNG/WebP uploads (maximum 2 MB each) are stored as binary data in their MongoDB UploadAsset records. Profile and product images therefore survive API restarts with the database. URLs use http://localhost:<PORT>/api/uploads/local/farm2home/... and work with the local frontend. These URLs are intended for same-machine development.
+
+The image endpoint serves only finished, non-deleted assets with their verified content type. Replaced profile images enter the existing cleanup queue. Supplying partial Cloudinary configuration reports an explicit configuration error; configured Cloudinary failures never silently switch providers. Production requires complete Cloudinary credentials and does not serve local-development images. Re-upload local images to Cloudinary before deploying.

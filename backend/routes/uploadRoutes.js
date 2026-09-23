@@ -5,7 +5,12 @@ import { protect } from "../middleware/authMiddleware.js";
 import { upload, verifyImages } from "../middleware/uploadMiddleware.js";
 import { uploadImages } from "../services/cloudinaryService.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { serveLocalImage } from "../services/localImageService.js";
 const router = Router();
+router.get(
+  "/uploads/local/farm2home/:owner/:image",
+  asyncHandler(serveLocalImage),
+);
 const limiter = rateLimit({
   windowMs: 15 * 60000,
   limit: 30,

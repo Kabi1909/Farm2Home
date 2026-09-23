@@ -28,7 +28,7 @@ Register a customer or farmer account. There are no demo login credentials. Pass
 
 The migration clears only known old browser-based demo record keys. It does not delete MongoDB records. Optional backend seed data already inserted into MongoDB will still appear; frontend cleanup does not distinguish or remove those records. Product form drafts remain user-entered data stored in sessionStorage. Recently viewed product IDs are kept in memory. Checkout confirmation stores only the IDs returned by the server.
 
-Product/profile images require configured backend Cloudinary credentials. Image previews are local until uploaded. The AI advisor calls the existing backend proxy and displays service failures without inventing estimates. Manual pricing remains available. Historical charts use recorded listing snapshots, with units and districts kept distinct. No market history is generated in the browser.
+During local development, product/profile images are stored persistently in MongoDB when all Cloudinary credentials are empty. Configured deployments use Cloudinary. Image previews are local until uploaded. The AI advisor calls the existing backend proxy and displays service failures without inventing estimates. Manual pricing remains available. Historical charts use recorded listing snapshots, with units and districts kept distinct. No market history is generated in the browser.
 
 Contact submission, newsletter subscription and forgotten-password recovery have no backend services yet. Their UI explicitly reports that they are unavailable; it does not claim a message, subscription or recovery email was sent. Authenticated password changes use the API.
 

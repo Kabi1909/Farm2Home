@@ -23,9 +23,10 @@ export function startBackgroundJobs(config) {
   }
   schedule(() => recordMarketPrices(), 60 * 60 * 1000, "Price snapshot");
   if (
-    config.CLOUDINARY_CLOUD_NAME &&
-    config.CLOUDINARY_API_KEY &&
-    config.CLOUDINARY_API_SECRET
+    config.NODE_ENV === "development" ||
+    (config.CLOUDINARY_CLOUD_NAME &&
+      config.CLOUDINARY_API_KEY &&
+      config.CLOUDINARY_API_SECRET)
   ) {
     schedule(
       () => processCleanup(cloudAdapter(config)),

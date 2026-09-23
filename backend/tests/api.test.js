@@ -18,6 +18,7 @@ import Review from "../models/Review.js";
 import { seedData } from "../seeds/seedData.js";
 import { recordMarketPrices } from "../services/priceHistoryService.js";
 import { processCleanup } from "../services/cloudinaryService.js";
+import { cloudAdapter } from "../services/cloudinaryService.js";
 import axios from "axios";
 import { createMarketplaceApi } from "../../frontend/src/services/marketplaceApi.js";
 import {
@@ -811,5 +812,78 @@ test("frontend API adapters complete an authenticated marketplace flow without b
     assert.equal(tokens.size, 0);
   } finally {
     await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("development profile uploads persist without Cloudinary and replace images safely", async () => {
+  const previousAdapter = app.locals.cloudAdapter;
+  const previousEnvironment = config.NODE_ENV;
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=",
+    "base64",
+  );
+  delete app.locals.cloudAdapter;
+  config.NODE_ENV = "development";
+  try {
+    const sendPhoto = () =>
+      api
+        .post("/api/uploads/profile")
+        .set(auth(farmer))
+        .attach("images", png, "profile.png");
+    const [first] = bodyOf(await sendPhoto(), 201);
+    assert.ok(first.publicId.startsWith("local/farm2home/"));
+    assert.equal(
+      bodyOf(await api.get("/api/auth/me").set(auth(farmer))).profileImage.url,
+      first.url,
+    );
+    bodyOf(
+      await api
+        .put("/api/farmer/profile")
+        .set(auth(farmer))
+        .send({ farmName: "Profile with uploaded photo" }),
+    );
+    // A fresh application instance reads the bytes from MongoDB, not process memory.
+    const fresh = request(createApp(config, routes));
+    const imageResponse = await fresh.get(new URL(first.url).pathname);
+    assert.equal(imageResponse.status, 200);
+    assert.equal(imageResponse.headers["content-type"], "image/png");
+    assert.equal(
+      imageResponse.headers["cross-origin-resource-policy"],
+      "cross-origin",
+    );
+    assert.deepEqual(imageResponse.body, png);
+    assert.equal(
+      (await UploadAsset.findOne({ publicId: first.publicId })).localData,
+      undefined,
+    );
+    const publicProfile = bodyOf(
+      await fresh.get("/api/farmers/" + farmer.user.id),
+    );
+    assert.equal(publicProfile.user.profileImage.url, first.url);
+    const [second] = bodyOf(await sendPhoto(), 201);
+    assert.notEqual(second.publicId, first.publicId);
+    assert.equal((await fresh.get(new URL(first.url).pathname)).status, 404);
+    await processCleanup(cloudAdapter(config));
+    assert.equal(await UploadAsset.findOne({ publicId: first.publicId }), null);
+    assert.equal((await fresh.get(new URL(second.url).pathname)).status, 200);
+    assert.equal(
+      (await fresh.get("/api/uploads/local/farm2home/invalid/invalid")).status,
+      404,
+    );
+    const before = await UploadAsset.countDocuments();
+    config.NODE_ENV = "production";
+    const blocked = await sendPhoto();
+    assert.equal(blocked.status, 503);
+    assert.match(blocked.body.message, /Cloudinary credentials/);
+    assert.equal(await UploadAsset.countDocuments(), before);
+    assert.equal((await fresh.get(new URL(second.url).pathname)).status, 404);
+    config.NODE_ENV = "development";
+    config.CLOUDINARY_CLOUD_NAME = "incomplete-configuration";
+    assert.equal((await sendPhoto()).status, 503);
+    assert.equal(await UploadAsset.countDocuments(), before);
+  } finally {
+    config.NODE_ENV = previousEnvironment;
+    delete config.CLOUDINARY_CLOUD_NAME;
+    app.locals.cloudAdapter = previousAdapter;
   }
 });
