@@ -23,6 +23,6 @@ export function errorMiddleware(error, req, res, next) {
   res.status(status).json({
     success: false,
     message,
-    errors: status < 500 ? error.errors || [] : [],
+    errors: status < 500 && Array.isArray(error.errors) ? error.errors : [],
   });
 }

@@ -37,8 +37,12 @@ export const registration = z
       .regex(/[a-z]/)
       .regex(/[A-Z]/)
       .regex(/\d/)
-      .regex(/[^a-zA-Z0-9]/),
-    confirmPassword: z.string(),
+      .regex(/[^a-zA-Z0-9]/)
+      .refine(
+        (value) => Buffer.byteLength(value, "utf8") <= 72,
+        "Password must fit within 72 UTF-8 bytes.",
+      ),
+    confirmPassword: z.string().max(72),
     role: z.enum(roles),
   })
   .strict()
@@ -49,7 +53,14 @@ export const registration = z
 export const login = z
   .object({
     email: z.string().trim().toLowerCase().email(),
-    password: z.string().min(1).max(72),
+    password: z
+      .string()
+      .min(1)
+      .max(72)
+      .refine(
+        (value) => Buffer.byteLength(value, "utf8") <= 72,
+        "Password is too long.",
+      ),
   })
   .strict();
 export const farmerProfile = z

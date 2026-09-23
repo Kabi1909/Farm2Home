@@ -6,6 +6,7 @@ const schema = new Schema(
     orderNumber: { type: String, unique: true },
     checkoutGroupId: String,
     checkoutKey: String,
+    checkoutFingerprint: String,
     customer: ref("User"),
     farmer: ref("User"),
     items: [

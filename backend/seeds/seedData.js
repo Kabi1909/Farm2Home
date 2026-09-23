@@ -11,6 +11,7 @@ import Notification from "../models/Notification.js";
 import PriceHistory from "../models/PriceHistory.js";
 import { calculateLine } from "../services/pricingService.js";
 import { orderSteps } from "../utils/constants.js";
+import { registration } from "../validation/schemas.js";
 
 const farms = [
   ["Sunshine Farms", "Vavuniya"],
@@ -20,7 +21,7 @@ const farms = [
   ["Eco Grow", "Galle"],
   ["Hill Country Organics", "Nuwara Eliya"],
   ["Ceylon Spice Garden", "Matara"],
-  ["Local Roots", "Polonnaruwa"],
+  ["Local Roots", "Kurunegala"],
   ["Eastern Harvest", "Batticaloa"],
   ["Jaffna Family Farm", "Jaffna"],
 ];
@@ -33,13 +34,34 @@ const produce = [
   ["Fresh Coconuts", "Coconut Products", 120],
   ["Green Chillies", "Vegetables", 380],
   ["Red Onions", "Vegetables", 300],
+  ["Potatoes", "Vegetables", 260],
+  ["Brinjal", "Vegetables", 220],
+  ["Green Beans", "Vegetables", 320],
+  ["Cabbage", "Vegetables", 180],
+  ["Pumpkin", "Vegetables", 140],
+  ["Mango", "Fruits", 260],
+  ["Papaya", "Fruits", 180],
+  ["Pineapple", "Fruits", 240],
+  ["Green Gram", "Pulses", 680],
+  ["Black Pepper", "Spices", 1800],
 ];
 
 export async function seedData({ NODE_ENV, SEED_PASSWORD }) {
   if (!["development", "test"].includes(NODE_ENV))
     throw new Error("Seeding is limited to development and test.");
-  if (!SEED_PASSWORD || SEED_PASSWORD.length < 10)
-    throw new Error("Set a demo SEED_PASSWORD of at least 10 characters.");
+  const passwordCheck = registration.safeParse({
+    name: "Seed",
+    email: "seed@example.test",
+    phone: "0771234567",
+    role: "customer",
+    password: SEED_PASSWORD,
+    confirmPassword: SEED_PASSWORD,
+  });
+  if (!passwordCheck.success) {
+    throw new Error(
+      "Set a SEED_PASSWORD that satisfies the registration password rules.",
+    );
+  }
   // Never erase or merge over an existing database.
   for (const Model of Object.values(mongoose.models)) {
     if (await Model.exists({}))
@@ -67,7 +89,7 @@ export async function seedData({ NODE_ENV, SEED_PASSWORD }) {
             password: SEED_PASSWORD,
           },
         ],
-        { session },
+        { session, ordered: true },
       );
       if (isFarmer) {
         farmers.push(user);
@@ -87,13 +109,13 @@ export async function seedData({ NODE_ENV, SEED_PASSWORD }) {
               publicLocation: false,
             },
           ],
-          { session },
+          { session, ordered: true },
         );
       } else {
         customers.push(user);
         await CustomerProfile.create(
           [{ user: user._id, district: "Colombo", city: "Colombo" }],
-          { session },
+          { session, ordered: true },
         );
         await Cart.create([{ customer: user._id }], { session });
         await Wishlist.create([{ customer: user._id }], { session });
@@ -104,7 +126,7 @@ export async function seedData({ NODE_ENV, SEED_PASSWORD }) {
     for (let index = 0; index < 40; index += 1) {
       const farmerIndex = Math.floor(index / 4);
       const [name, category, price] = produce[index % produce.length];
-      const upcoming = index % 10 === 9;
+      const upcoming = index % 4 === 3 && farmerIndex % 2 === 0;
       const date = new Date(today.getTime() + (upcoming ? 7 : -2) * 86400000);
       const [product] = await Product.create(
         [
@@ -131,7 +153,7 @@ export async function seedData({ NODE_ENV, SEED_PASSWORD }) {
             pickupAvailable: true,
           },
         ],
-        { session },
+        { session, ordered: true },
       );
       products.push(product);
     }
@@ -177,7 +199,7 @@ export async function seedData({ NODE_ENV, SEED_PASSWORD }) {
             ),
           },
         ],
-        { session },
+        { session, ordered: true },
       );
       for (const product of selected) {
         product.quantity -= 2;
@@ -195,7 +217,7 @@ export async function seedData({ NODE_ENV, SEED_PASSWORD }) {
                 comment: "Demo review: fresh produce and friendly pickup.",
               },
             ],
-            { session },
+            { session, ordered: true },
           );
       }
       await Notification.create(
@@ -208,7 +230,7 @@ export async function seedData({ NODE_ENV, SEED_PASSWORD }) {
             relatedOrder: order._id,
           },
         ],
-        { session },
+        { session, ordered: true },
       );
     }
     for (const product of products) {
@@ -234,7 +256,7 @@ export async function seedData({ NODE_ENV, SEED_PASSWORD }) {
           date: new Date(today.getTime() - day * 86400000),
           source: "Fictional development seed; not observed market data",
         })),
-        { session },
+        { session, ordered: true },
       );
     }
     for (const farmer of farmers) {
@@ -256,7 +278,7 @@ export async function seedData({ NODE_ENV, SEED_PASSWORD }) {
             }).session(session),
           },
         },
-        { session },
+        { session, ordered: true },
       );
     }
     return {

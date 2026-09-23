@@ -35,9 +35,13 @@ export function createApp(config, routes) {
   );
   if (config.NODE_ENV === "development")
     app.use(
-      morgan(":method :url :status :response-time ms", {
-        skip: (req) => req.path.startsWith("/api/auth"),
-      }),
+      morgan(
+        (tokens, req, res) =>
+          `${tokens.method(req, res)} ${req.path} ${tokens.status(req, res)} ${tokens["response-time"](req, res)} ms`,
+        {
+          skip: (req) => req.path.startsWith("/api/auth"),
+        },
+      ),
     );
   app.get("/api/health", (req, res) =>
     res.status(mongoose.connection.readyState === 1 ? 200 : 503).json({

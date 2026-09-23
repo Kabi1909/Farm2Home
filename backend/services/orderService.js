@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import Cart from "../models/Cart.js";
 import Product from "../models/Product.js";
 import Order from "../models/Order.js";
@@ -18,11 +18,26 @@ export async function checkout(
   deliveryCharge,
   lowStockThreshold = 5,
 ) {
+  const checkoutFingerprint = createHash("sha256")
+    .update(JSON.stringify(input))
+    .digest("hex");
   return mongoose.connection.transaction(async (session) => {
     const previous = await Order.find({ customer, checkoutKey: key }).session(
       session,
     );
-    if (previous.length) return previous;
+    if (previous.length) {
+      if (
+        previous.some(
+          (order) => order.checkoutFingerprint !== checkoutFingerprint,
+        )
+      ) {
+        throw new ApiError(
+          409,
+          "This checkout key has already been used with different details.",
+        );
+      }
+      return previous;
+    }
     const cart = await Cart.findOne({ customer }).session(session);
     if (!cart?.items.length) throw new ApiError(400, "Your cart is empty.");
     const groups = new Map();
@@ -113,6 +128,7 @@ export async function checkout(
             orderNumber: `F2H-${randomUUID().slice(0, 8).toUpperCase()}`,
             checkoutGroupId: groupId,
             checkoutKey: key,
+            checkoutFingerprint,
             customer,
             farmer,
             items,
