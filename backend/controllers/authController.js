@@ -42,6 +42,22 @@ export async function login(req, res) {
   respond(res, { user, token: generateToken(user, req.app.locals.config) });
 }
 export const me = (req, res) => respond(res, req.user);
+export async function changePassword(req, res) {
+  const { currentPassword, password } = req.validated.body;
+  const user = await User.findById(req.user._id).select(
+    "+password +tokenVersion",
+  );
+  if (!(await user.comparePassword(currentPassword)))
+    throw new ApiError(400, "Current password is incorrect.");
+  user.password = password;
+  user.tokenVersion += 1;
+  await user.save();
+  respond(
+    res,
+    { token: generateToken(user, req.app.locals.config) },
+    "Password updated.",
+  );
+}
 export async function logout(req, res) {
   await User.updateOne({ _id: req.user._id }, { $inc: { tokenVersion: 1 } });
   respond(res, null, "Signed out on all devices.");

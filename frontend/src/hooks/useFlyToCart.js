@@ -6,15 +6,21 @@ export default function useFlyToCart() {
   const { addToCart } = useCart();
   const { notify } = useUI();
   const flights = useRef(new Set());
-  useEffect(
-    () => () => {
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
       for (const flight of flights.current) flight.cancel();
       flights.current.clear();
-    },
-    [],
-  );
-  return (product, quantity, image) => {
-    if (!addToCart(product, quantity, { silentSuccess: true })) return false;
+    };
+  }, []);
+  return async (product, quantity, image) => {
+    if (!(await addToCart(product, quantity, { silentSuccess: true }))) return false;
+    if (!mounted.current) {
+      notify(`${product.name} added to cart`);
+      return true;
+    }
     const success = () => notify(`${product.name} added to cart`);
     // Bound temporary visuals during bursts without dropping any cart additions.
     if (flights.current.size >= 8) {

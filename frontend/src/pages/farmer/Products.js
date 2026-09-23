@@ -14,7 +14,7 @@ import {
 } from '../../components/common/UI';
 import { money } from '../../utils/helpers';
 export default function Products() {
-  const { products, setProducts, orders, setOrders } = useMarket();
+  const { products, saveProduct, removeProduct, orders } = useMarket();
   const { user } = useAuth();
   const { notify } = useUI();
   const [search, setSearch] = useState(''),
@@ -25,11 +25,15 @@ export default function Products() {
   const filtered = own.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) &&
-      (filter === 'All' || (filter === 'Drafts' && p.draft) || p.availability === filter),
+      (filter === 'All' || p.availability === filter),
   );
-  const update = (id, changes) => {
-    setProducts((old) => old.map((p) => (p.id === id ? { ...p, ...changes } : p)));
-    notify('Product updated.');
+  const update = async (id, changes) => {
+    try {
+      await saveProduct({ ...products.find((p) => p.id === id), ...changes });
+      notify('Product updated.');
+    } catch (failure) {
+      notify(failure.message, 'error');
+    }
   };
   return (
     <>
@@ -55,7 +59,7 @@ export default function Products() {
           label="Availability"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          options={['All', 'Available', 'Low Stock', 'Upcoming Harvest', 'Sold Out', 'Drafts']}
+          options={['All', 'Available', 'Low Stock', 'Upcoming Harvest', 'Sold Out']}
         />
       </div>
       {filtered.length ? (
@@ -129,9 +133,13 @@ export default function Products() {
         <ConfirmDialog
           title={'Delete ' + remove.name + '?'}
           description="This removes the listing from the marketplace. Existing order records will be kept."
-          onConfirm={() => {
-            setProducts((old) => old.filter((p) => p.id !== remove.id));
-            notify('Product deleted.');
+          onConfirm={async () => {
+            try {
+              await removeProduct(remove.id);
+              notify('Product deleted.');
+            } catch (failure) {
+              notify(failure.message, 'error');
+            }
           }}
           onClose={() => setRemove(null)}
         />

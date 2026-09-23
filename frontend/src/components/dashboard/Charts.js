@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { marketplaceApi } from '../../services/marketplaceApi';
+import { allPages } from '../../services/adapters';
+import { useMarket } from '../../context/AppContext';
+import { useState, useEffect } from 'react';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -13,20 +16,26 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { priceHistory, districts } from '../../data/seed';
+import { districts } from '../../data/catalog';
 import { Select } from '../common/UI';
 import { money } from '../../utils/helpers';
 export function RevenueChart({ orders, kind = 'revenue' }) {
-  const data = Array.from({ length: 6 }, (_, i) => {
-    const month = i + 4;
+  const months = [...new Set(orders.map((order) => order.date.slice(0, 7)))].sort().slice(-12);
+  const data = months.map((month) => {
     const matching = orders.filter(
-      (o) => Number(o.date.slice(5, 7)) === month && o.status !== 'Cancelled',
+      (order) =>
+        order.date.startsWith(month) &&
+        (kind === 'orders' ? order.status !== 'Cancelled' : order.status === 'Completed'),
     );
     return {
-      name: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'][i],
-      value: kind === 'orders' ? matching.length : matching.reduce((s, o) => s + o.subtotal, 0),
+      name: month,
+      value:
+        kind === 'orders'
+          ? matching.length
+          : matching.reduce((sum, order) => sum + order.subtotal, 0),
     };
   });
+  if (!data.length) return <p>No order history yet.</p>;
   return (
     <div className="chart">
       <ResponsiveContainer width="100%" height="100%">
@@ -60,25 +69,76 @@ export function RevenueChart({ orders, kind = 'revenue' }) {
   );
 }
 export function PriceTrendChart() {
-  const [product, setProduct] = useState('Tomato'),
+  const { products } = useMarket();
+  const choices = [
+    ...new Map(
+      products.map((product) => [
+        JSON.stringify([product.name.toLowerCase(), product.unit]),
+        { name: product.name.toLowerCase(), unit: product.unit },
+      ]),
+    ).entries(),
+  ];
+  const [selection, setProduct] = useState(''),
     [district, setDistrict] = useState('All districts'),
     [period, setPeriod] = useState('30');
-  const factor =
-    district === 'All districts' ? 1 : 1 + ((districts.indexOf(district) % 7) - 3) * 0.025;
-  const data = priceHistory
-    .slice(-Number(period))
-    .map((d) => ({ ...d, price: Math.round(d[product] * factor) }));
+  const key = selection || choices[0]?.[0] || '';
+  const [product, unit] = key ? JSON.parse(key) : ['', ''];
+  const [data, setData] = useState([]),
+    [loading, setLoading] = useState(false),
+    [error, setError] = useState('');
+  useEffect(() => {
+    let active = true;
+    setData([]);
+    setError('');
+    if (!product) return;
+    setLoading(true);
+    allPages(marketplaceApi.prices.trends, {
+      product,
+      unit,
+      period,
+      ...(district !== 'All districts' && { district }),
+    })
+      .then((rows) => {
+        if (!active) return;
+        const days = new Map();
+        rows.forEach((row) => {
+          const day = row.date.slice(0, 10),
+            previous = days.get(day) || { total: 0, count: 0 };
+          days.set(day, {
+            total: previous.total + row.averagePrice * row.sampleCount,
+            count: previous.count + row.sampleCount,
+          });
+        });
+        setData(
+          [...days]
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([day, value]) => ({ day, price: value.total / value.count })),
+        );
+      })
+      .catch((failure) => {
+        if (active) setError(failure.message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [product, unit, district, period]);
   return (
     <section className="panel">
       <div className="between">
         <h2>Price trends</h2>
-        <span className="badge green">Mock listing data</span>
+        <span className="badge green">Listing history</span>
       </div>
       <div className="chart-controls">
         <Select
           label="Product"
-          options={['Tomato', 'Carrot', 'Potato']}
-          value={product}
+          options={[
+            { value: '', label: 'Select a product' },
+            ...choices.map(([value, item]) => ({ value, label: item.name + ' / ' + item.unit })),
+          ]}
+          value={key}
           onChange={(e) => setProduct(e.target.value)}
         />
         <Select
@@ -101,19 +161,22 @@ export function PriceTrendChart() {
       <p>
         {product} price · {district} · last {period} days
       </p>
+      {loading && <p role="status">Loading price history…</p>}
+      {error && <p role="alert">{error}</p>}
+      {!loading && !error && !data.length && <p>No recorded price history for this selection.</p>}
       <div className="chart">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="day" fontSize={10} />
             <YAxis fontSize={11} domain={['auto', 'auto']} />
-            <Tooltip formatter={(v) => money(v) + '/kg'} />
+            <Tooltip formatter={(v) => money(v) + '/' + unit} />
             <Area type="monotone" dataKey="price" stroke="#2f6b3b" fill="#dde9d8" strokeWidth={2} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
       <small className="muted">
-        Illustrative Farm2Home marketplace trends, not official market prices.
+        Recorded marketplace listing prices; not official market quotations.
       </small>
     </section>
   );
@@ -150,7 +213,8 @@ export function CategoryChart({ products, orders }) {
     .filter((o) => o.status !== 'Cancelled')
     .forEach((o) =>
       o.items.forEach((i) => {
-        const category = products.find((p) => p.id === i.productId)?.category || 'Other';
+        const category =
+          i.category || products.find((p) => p.id === i.productId)?.category || 'Other';
         totals[category] = (totals[category] || 0) + i.quantity * i.price;
       }),
     );

@@ -63,6 +63,17 @@ export const login = z
       ),
   })
   .strict();
+export const passwordChange = z
+  .object({
+    currentPassword: login.shape.password,
+    password: registration.innerType().shape.password,
+    confirmPassword: z.string().max(72),
+  })
+  .strict()
+  .refine((value) => value.password === value.confirmPassword, {
+    message: "Passwords must match.",
+    path: ["confirmPassword"],
+  });
 export const farmerProfile = z
   .object({
     name: text().optional(),

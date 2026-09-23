@@ -1,7 +1,6 @@
 import { api } from './api.js';
 
-// These adapters return server DTOs. Existing mock repositories stay available
-// while individual screens migrate to asynchronous, server-owned state.
+// Server DTOs are mapped to the existing views by adapters.js.
 export function createMarketplaceApi(client = api, tokenStore = globalThis.sessionStorage) {
   const data = async (request) => (await request).data.data;
   const page = async (request) => (await request).data;
@@ -20,6 +19,12 @@ export function createMarketplaceApi(client = api, tokenStore = globalThis.sessi
         return result.user;
       },
       register: (values) => data(client.post('/auth/register', values)),
+      async changePassword(currentPassword, password, confirmPassword) {
+        const result = await data(
+          client.put('/auth/password', { currentPassword, password, confirmPassword }),
+        );
+        tokenStore?.setItem('f2h:token', result.token);
+      },
       me: () => data(client.get('/auth/me')),
       async logout() {
         // Keep the token if revocation fails so the caller can retry.
@@ -76,6 +81,8 @@ export function createMarketplaceApi(client = api, tokenStore = globalThis.sessi
         data(client.put(`/orders/${encodeURIComponent(id)}/status`, { status })),
     },
     reviews: {
+      list: (params) => page(client.get('/reviews', { params })),
+      mine: (params) => page(client.get('/reviews/my', { params })),
       create: (values) => data(client.post('/reviews', values)),
       product: (id, params) =>
         page(client.get(`/reviews/product/${encodeURIComponent(id)}`, { params })),

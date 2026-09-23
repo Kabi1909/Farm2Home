@@ -15,7 +15,9 @@ export async function create(req, res) {
 export async function list(req, res) {
   const filter = req.params.productId
     ? { product: req.params.productId }
-    : { farmer: req.params.farmerId || req.user._id };
+    : req.params.farmerId || req.user
+      ? { farmer: req.params.farmerId || req.user._id }
+      : {};
   const result = await listPage(
     Review,
     filter,
@@ -38,4 +40,15 @@ export async function list(req, res) {
       verifiedPurchase: true,
     })),
   });
+}
+
+export async function mine(req, res) {
+  const result = await listPage(
+    Review,
+    { customer: req.user._id },
+    req.validated.query,
+    { createdAt: -1, _id: -1 },
+    { path: "customer", select: "name" },
+  );
+  res.json({ success: true, ...result });
 }

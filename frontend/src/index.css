@@ -1963,21 +1963,6 @@ footer {
   display: block;
   margin-bottom: 16px;
 }
-.demo-box {
-  border: 1px dashed #cddbbf;
-  border-radius: 7px;
-  padding: 17px;
-  background: #f8faf4;
-  margin-top: 24px;
-  font-size: 11px;
-}
-.demo-box p {
-  font-size: 10px;
-  margin: 6px 0 13px;
-}
-.demo-box .btn {
-  text-transform: capitalize;
-}
 .dashboard-shell {
   display: grid;
   grid-template-columns: 205px minmax(0, 1fr);

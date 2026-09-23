@@ -3,7 +3,7 @@ import rateLimit from "express-rate-limit";
 import * as controller from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { validateRequest } from "../middleware/validateRequest.js";
-import { registration, login } from "../validation/schemas.js";
+import { registration, login, passwordChange } from "../validation/schemas.js";
 import { asyncHandler as wrap } from "../utils/asyncHandler.js";
 const router = Router();
 const limiter = rateLimit({
@@ -26,4 +26,11 @@ router.post(
 router.post("/login", limiter, validateRequest(login), wrap(controller.login));
 router.get("/me", protect, controller.me);
 router.post("/logout", protect, wrap(controller.logout));
+router.put(
+  "/password",
+  limiter,
+  protect,
+  validateRequest(passwordChange),
+  wrap(controller.changePassword),
+);
 export default router;

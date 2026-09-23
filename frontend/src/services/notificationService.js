@@ -1,2 +1,2 @@
-import { repository } from './store';
-export const notificationService = repository('notifications');
+import { marketplaceApi } from './marketplaceApi.js';
+export const notificationService = marketplaceApi.notifications;

@@ -106,8 +106,8 @@ export default function ProductDetails() {
           <button
             className="btn secondary full"
             disabled={!p.quantity}
-            onClick={() => {
-              if (addToCart(p, quantity)) navigate('/customer/checkout');
+            onClick={async () => {
+              if (await addToCart(p, quantity)) navigate('/customer/checkout');
             }}
           >
             Buy now

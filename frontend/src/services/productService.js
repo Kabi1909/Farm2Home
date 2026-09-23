@@ -1,2 +1,2 @@
-import { repository } from './store';
-export const productService = repository('products');
+import { marketplaceApi } from './marketplaceApi.js';
+export const productService = marketplaceApi.products;

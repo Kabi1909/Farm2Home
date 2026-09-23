@@ -41,7 +41,7 @@ class ErrorBoundary extends Component {
     return this.state.error ? (
       <div className="empty-state">
         <h1>Something didn’t load.</h1>
-        <p>Please try again. Your saved marketplace data is still in your browser.</p>
+        <p>Please try again. Your saved marketplace records remain on the server.</p>
         <button className="btn" onClick={() => window.location.reload()}>
           Retry
         </button>

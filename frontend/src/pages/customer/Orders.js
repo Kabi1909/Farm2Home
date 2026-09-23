@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Check, Package, ArrowRight } from 'lucide-react';
 import { useAuth, useMarket, useUI } from '../../context/AppContext';
-import { orderSteps } from '../../data/seed';
+import { orderSteps } from '../../data/catalog';
 import { money } from '../../utils/helpers';
 import {
   PageHeading,
@@ -13,7 +13,6 @@ import {
   Select,
 } from '../../components/common/UI';
 import { ReviewForm } from '../../components/order/Reviews';
-import DemoOrderButton from '../../components/order/DemoOrderButton';
 export function OrderStatusTracker({ order }) {
   if (order.status === 'Cancelled')
     return <div className="notice error-text">This order was cancelled.</div>;
@@ -51,7 +50,7 @@ export function OrderActions({ order }) {
                   : 'Mark ' + next.toLowerCase()}
           </button>
         )}
-        {['Pending', 'Confirmed'].includes(order.status) && (
+        {order.status === 'Pending' && (
           <button className="btn small secondary" onClick={() => setConfirm('Cancelled')}>
             Cancel order
           </button>
@@ -61,9 +60,9 @@ export function OrderActions({ order }) {
         <ConfirmDialog
           title={confirm === 'Cancelled' ? 'Cancel this order?' : 'Update order status?'}
           description={`Order ${order.id} will be marked ${confirm.toLowerCase()}.${confirm === 'Cancelled' ? ' Reserved stock will be restored.' : ''}`}
-          onConfirm={() => {
+          onConfirm={async () => {
             try {
-              changeStatus(order.id, confirm);
+              await changeStatus(order.id, confirm);
             } catch (err) {
               notify(err.message, 'error');
             }
@@ -93,7 +92,6 @@ export default function Orders() {
       <PageHeading
         eyebrow={farmer ? 'FROM YOUR FARM TO THEIR TABLE' : 'YOUR FARM-TO-HOME JOURNEY'}
         title={farmer ? 'Farm orders' : 'Your orders'}
-        action={farmer ? <DemoOrderButton /> : null}
         description={
           farmer
             ? 'Keep every customer in the loop, from harvest to handover.'

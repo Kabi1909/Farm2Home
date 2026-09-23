@@ -1,4 +1,4 @@
-import { images, photo } from './seed';
+import { images, photo } from './catalog';
 export const farmHero = '/images/farm-hero.png';
 export const categoryArt = {
   Vegetables: { image: images.hero, symbol: '🥕' },

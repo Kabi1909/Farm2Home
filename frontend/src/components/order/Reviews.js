@@ -18,9 +18,10 @@ export function ReviewCard({ review: r }) {
 }
 export function ReviewForm({ order, item }) {
   const [rating, setRating] = useState(5),
-    [comment, setComment] = useState('');
+    [comment, setComment] = useState(''),
+    [busy, setBusy] = useState(false);
   const { user } = useAuth();
-  const { reviews, setReviews, addNotice } = useMarket();
+  const { reviews, submitReview } = useMarket();
   const { notify } = useUI();
   const existing = reviews.some(
     (r) => r.orderId === order.id && r.productId === item.productId && r.customerId === user.id,
@@ -31,24 +32,24 @@ export function ReviewForm({ order, item }) {
   return (
     <form
       className="panel review-form"
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
         if (!comment.trim()) return;
-        setReviews((old) => [
-          {
-            id: crypto.randomUUID(),
+        if (busy) return;
+        setBusy(true);
+        try {
+          await submitReview({
             orderId: order.id,
             productId: item.productId,
-            farmerId: order.farmerId,
-            customerId: user.id,
-            customer: user.name,
             rating,
             comment: comment.trim(),
-            date: new Date().toISOString().slice(0, 10),
-          },
-          ...old,
-        ]);
-        addNotice(order.farmerId, 'A customer shared a new review', '/farmer/reviews');
+          });
+        } catch (failure) {
+          notify(failure.message, 'error');
+          return;
+        } finally {
+          setBusy(false);
+        }
         notify('Your review has been posted.');
       }}
     >
@@ -76,7 +77,9 @@ export function ReviewForm({ order, item }) {
           placeholder="Tell us about the freshness, quality, and your experience."
         />
       </Field>
-      <button className="btn">Share review</button>
+      <button className="btn" disabled={busy}>
+        {busy ? 'Posting…' : 'Share review'}
+      </button>
     </form>
   );
 }

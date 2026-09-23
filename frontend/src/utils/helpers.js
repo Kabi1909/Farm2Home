@@ -5,14 +5,6 @@ export const unitPrice = (product, quantity) =>
     ? Number(product.bulkPrice)
     : Number(product.price);
 export const validPhone = (value) => /^(?:\+94|0)\d{9}$/.test(String(value).replace(/[\s-]/g, ''));
-export const readStore = (key, fallback) => {
-  try {
-    return JSON.parse(localStorage.getItem('f2h:' + key)) ?? fallback;
-  } catch {
-    return fallback;
-  }
-};
-export const writeStore = (key, value) => localStorage.setItem('f2h:' + key, JSON.stringify(value));
 export const filterProducts = (products, query, farmers = []) =>
   products
     .filter((p) => {

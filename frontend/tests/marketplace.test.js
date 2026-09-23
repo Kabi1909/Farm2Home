@@ -1,24 +1,37 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  products,
-  farmers,
-  customers,
-  orders,
-  reviews,
-  notifications,
-  districts,
-  orderSteps,
-} from '../src/data/seed.js';
+import { districts, orderSteps } from '../src/data/catalog.js';
 import { unitPrice, filterProducts, validPhone } from '../src/utils/helpers.js';
 import { getPriceSuggestion } from '../src/services/aiService.js';
-
-test('seed data meets the requested marketplace sizes and valid references', () => {
-  assert.ok(farmers.length >= 10 && customers.length >= 20 && products.length >= 40);
-  assert.ok(orders.length >= 25 && reviews.length >= 30 && notifications.length >= 20);
-  assert.equal(districts.length, 25);
-  assert.ok(products.every((p) => farmers.some((f) => f.id === p.farmerId) && p.images.length > 0));
-  assert.ok(orders.every((o) => customers.some((c) => c.id === o.customerId)));
+import { marketplaceApi } from '../src/services/marketplaceApi.js';
+// Test inputs are isolated here; the application never imports them.
+const farmers = [{ id: 'f1', name: 'Test grower', farm: 'Sunrise Family Farm' }];
+const products = [
+  {
+    id: 'p1',
+    farmerId: 'f1',
+    name: 'Tomato',
+    district: 'Vavuniya',
+    category: 'Vegetables',
+    price: 340,
+    rating: 4.8,
+    delivery: true,
+    enabled: true,
+  },
+  {
+    id: 'p2',
+    farmerId: 'f1',
+    name: 'Carrot',
+    district: 'Kandy',
+    category: 'Vegetables',
+    price: 280,
+    rating: 4.6,
+    delivery: true,
+    enabled: true,
+  },
+];
+test('district choices retain all 25 Sri Lankan districts', () => {
+  assert.equal(new Set(districts).size, 25);
 });
 
 test('Tomato search and Vavuniya district can be combined', () => {
@@ -107,25 +120,50 @@ test('phone validation accepts Sri Lankan local and international forms', () => 
   assert.equal(validPhone('123'), false);
 });
 
-test('mock AI recommends Rs. 340 for Grade A tomatoes', async () => {
-  const result = await getPriceSuggestion({
-    name: 'Tomato',
-    district: 'Vavuniya',
-    quality: 'Grade A',
-    quantity: 50,
-    unit: 'kg',
+test('price advisor forwards the actual product and abort signal to the API', async (t) => {
+  const signal = new AbortController().signal;
+  const expected = {
+    recommendedPrice: 375,
+    minimumPrice: 360,
+    maximumPrice: 390,
+    confidence: 'Medium',
+  };
+  t.mock.method(marketplaceApi, 'suggestPrice', async (values, actualSignal) => {
+    assert.deepEqual(values, {
+      product: 'Tomato',
+      category: 'Vegetables',
+      district: 'Vavuniya',
+      quality: 'Grade A',
+      quantity: 20,
+      unit: 'kg',
+      harvestDate: '2026-06-01',
+      month: 6,
+    });
+    assert.equal(actualSignal, signal);
+    return expected;
   });
-  assert.deepEqual(result, {
-    recommendedPrice: 340,
-    minimumPrice: 320,
-    maximumPrice: 360,
-    confidence: 'High',
-  });
+  assert.deepEqual(
+    await getPriceSuggestion(
+      {
+        name: ' Tomato ',
+        category: 'Vegetables',
+        district: 'Vavuniya',
+        quality: 'Grade A',
+        quantity: '20',
+        unit: 'kg',
+        harvestDate: '2026-06-01',
+      },
+      { signal },
+    ),
+    expected,
+  );
 });
-
-test('mock AI failure is explicit and retryable', async () => {
+test('an unavailable advisor rejects instead of returning a generated price', async (t) => {
+  t.mock.method(marketplaceApi, 'suggestPrice', async () => {
+    throw new Error('Service unavailable');
+  });
   await assert.rejects(
-    getPriceSuggestion({ name: 'Tomato', simulateError: true }),
-    /temporarily unavailable/,
+    getPriceSuggestion({ name: 'Tomato', harvestDate: '2026-06-01' }),
+    /Service unavailable/,
   );
 });

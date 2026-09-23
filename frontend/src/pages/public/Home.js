@@ -14,14 +14,14 @@ import {
   Handshake,
 } from 'lucide-react';
 import { useMarket } from '../../context/AppContext';
-import { images, categories } from '../../data/seed';
+import { images, categories } from '../../data/catalog';
 import { money } from '../../utils/helpers';
-import { Img, SectionHeading } from '../../components/common/UI';
+import { Img, SectionHeading, RatingStars } from '../../components/common/UI';
 import { ProductGrid, CategoryCard } from '../../components/product/ProductCard';
 import FarmerCard from '../../components/farmer/FarmerCard';
 
 export default function Home() {
-  const { products, farmers } = useMarket();
+  const { products, farmers, reviews, prices } = useMarket();
   const visible = products.filter((p) => p.enabled && !p.draft);
   const fresh = visible.slice(0, 6);
   const featured = visible.slice(6, 12);
@@ -93,6 +93,7 @@ export default function Home() {
           label="View All Farmers"
         />
         <div className="farmer-grid">
+          {!farmers.length && <p>No farmers have published a profile yet.</p>}
           {farmers.slice(0, 4).map((f) => (
             <FarmerCard key={f.id} farmer={f} />
           ))}
@@ -131,65 +132,36 @@ export default function Home() {
       <section className="container reference-section">
         <SectionHeading
           title="Recent Marketplace Prices"
-          description="Based on recent Farm2Home marketplace listings. Fictional demo prices."
+          description="Current asking prices from published marketplace listings."
         />
         <div className="reference-prices">
-          {[
-            ['Tomato', 340, 360, images.tomato],
-            ['Carrot', 420, 400, images.carrot],
-            ['Potato', 300, 320, images.potato],
-            ['Onion', 280, 290, images.onion],
-          ].map(([name, price, previous, img]) => (
-            <Link to={'/products?search=' + name} key={name}>
-              <Img src={img} alt={name} />
+          {prices.slice(0, 4).map((price, index) => (
+            <Link to={'/products?search=' + encodeURIComponent(price.productName)} key={index}>
               <span>
-                <strong>{name}</strong>
-                <b>{money(price)} / kg</b>
+                <strong>{price.productName}</strong>
+                <b>
+                  {money(price.averagePrice)} / {price.unit}
+                </b>
                 <small>
-                  Previously {money(previous)} ・{' '}
-                  {(((price - previous) / previous) * 100).toFixed(1)}%
+                  {price.district} · {price.sampleCount} listings
                 </small>
               </span>
-              <svg width="65" height="25" viewBox="0 0 65 25" aria-label="Illustrative price trend">
-                <polyline
-                  points={
-                    price < previous
-                      ? '0,4 13,9 24,6 38,16 52,14 65,22'
-                      : '0,22 13,16 24,19 38,10 52,13 65,3'
-                  }
-                  fill="none"
-                  stroke="#2f6b3b"
-                  strokeWidth="2"
-                />
-              </svg>
             </Link>
           ))}
+          {!prices.length && <p>Prices will appear when farmers publish their products.</p>}
         </div>
       </section>
       <section className="container reference-section">
         <SectionHeading title="Loved by Our Community" />
         <div className="testimonial-grid">
-          {[
-            [
-              'Fresh produce, fair prices and a real connection with our farmer. This is how shopping should feel.',
-              'Amaya Perera',
-            ],
-            [
-              'Carefully packed, beautifully fresh vegetables. Our family looks forward to every basket.',
-              'Kasun Fernando',
-            ],
-            [
-              'A simple way to support local farms while bringing better food to our table.',
-              'Nethmi Silva',
-            ],
-          ].map(([text, name]) => (
-            <article key={name}>
-              <span className="stars">★★★★★</span>
-              <blockquote>“{text}”</blockquote>
-              <strong>{name}</strong>
-              <small className="muted"> · Demo customer story</small>
+          {reviews.slice(0, 3).map((review) => (
+            <article key={review.id}>
+              <RatingStars rating={review.rating} />
+              <blockquote>“{review.comment}”</blockquote>
+              <strong>{review.customer}</strong>
             </article>
           ))}
+          {!reviews.length && <p>Customer reviews will appear after completed orders.</p>}
         </div>
       </section>
       <section className="container reference-cta">

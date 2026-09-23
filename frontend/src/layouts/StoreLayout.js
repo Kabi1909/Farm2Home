@@ -287,31 +287,30 @@ export function Footer() {
         </div>
         <div>
           <h4>Subscribe to Our Newsletter</h4>
-          <p>Get the latest updates and fresh offers.</p>
+          <p>Newsletter subscriptions are not available yet.</p>
           <form
             className="footer-subscribe"
             onSubmit={(e) => {
               e.preventDefault();
-              localStorage.setItem('f2h:newsletter', e.currentTarget.email.value);
-              notify('Subscription saved locally for this demo.');
-              e.currentTarget.reset();
             }}
           >
             <input
+              disabled
               name="email"
               type="email"
               required
               aria-label="Newsletter email"
               placeholder="Your email address"
             />
-            <button className="btn small">Subscribe</button>
+            <button className="btn small" disabled>
+              Subscribe
+            </button>
           </form>
         </div>
       </div>
       <div className="container footer-bottom">
         <span>© {new Date().getFullYear()} Farm2Home LK. All rights reserved.</span>
         <span>Fresh Food　•　Local Farmers　•　A Healthier Sri Lanka</span>
-        <span>Frontend demo · fictional marketplace data</span>
       </div>
     </footer>
   );

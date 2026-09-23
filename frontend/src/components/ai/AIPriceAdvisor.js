@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Sparkles, ArrowRight, RefreshCw } from 'lucide-react';
-import { getPriceSuggestion, usesPriceApi } from '../../services/aiService';
+import { getPriceSuggestion } from '../../services/aiService';
 import { money } from '../../utils/helpers';
-import { Checkbox } from '../common/UI';
 export default function AIPriceAdvisor({ product, onApply, onManual }) {
   const [prediction, setPrediction] = useState(null),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState(''),
-    [simulateError, setSimulateError] = useState(false);
+    [error, setError] = useState('');
   const inputKey = JSON.stringify([
     product.name,
     product.category,
@@ -41,7 +39,6 @@ export default function AIPriceAdvisor({ product, onApply, onManual }) {
         {
           ...product,
           month: new Date(product.harvestDate).getMonth() + 1,
-          simulateError,
         },
         { signal: controller.signal },
       );
@@ -63,7 +60,7 @@ export default function AIPriceAdvisor({ product, onApply, onManual }) {
           <span className="eyebrow">A LITTLE GUIDANCE FOR YOUR HARVEST</span>
           <h2>AI Smart Price Advisor</h2>
         </div>
-        <span className="badge green">{usesPriceApi ? 'Price estimate' : 'Mock AI'}</span>
+        <span className="badge green">Price estimate</span>
       </div>
       <p>Find a thoughtful starting price for your produce. You’re always in control.</p>
       <div className="ai-inputs">
@@ -112,10 +109,7 @@ export default function AIPriceAdvisor({ product, onApply, onManual }) {
             Suggested range: {money(result.minimumPrice)} – {money(result.maximumPrice)} /{' '}
             {product.unit}
           </p>
-          <span className="badge green">
-            {result.confidence} confidence ·{' '}
-            {usesPriceApi ? 'service estimate' : 'simulated estimate'}
-          </span>
+          <span className="badge green">{result.confidence} confidence · service estimate</span>
           {result.marketComparison && (
             <p>
               Matching marketplace listings average {money(result.marketComparison.averagePrice)} /{' '}
@@ -162,17 +156,6 @@ export default function AIPriceAdvisor({ product, onApply, onManual }) {
         AI price suggestions are estimates based on available marketplace data and may not reflect
         the exact current market price. You can always set your own selling price.
       </p>
-      {!usesPriceApi && (
-        <Checkbox
-          label="Demo: simulate AI unavailable"
-          checked={simulateError}
-          onChange={(e) => {
-            setSimulateError(e.target.checked);
-            setPrediction(null);
-            setError('');
-          }}
-        />
-      )}
     </section>
   );
 }

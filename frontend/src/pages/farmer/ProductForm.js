@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Check, ArrowLeft, ArrowRight, Save, Sprout } from 'lucide-react';
 import { useAuth, useMarket, useUI } from '../../context/AppContext';
-import { categories, districts, towns, qualities, methods, statuses } from '../../data/seed';
+import { categories, districts, towns, qualities, methods, statuses } from '../../data/catalog';
 import { Field, Select, Checkbox, PageHeading, EmptyState, Img } from '../../components/common/UI';
 import AIPriceAdvisor from '../../components/ai/AIPriceAdvisor';
 import ImageUploader from '../../components/forms/ImageUploader';
@@ -22,7 +22,7 @@ export default function ProductForm() {
   const { id } = useParams(),
     navigate = useNavigate();
   const { user } = useAuth();
-  const { products, setProducts } = useMarket();
+  const { products, saveProduct } = useMarket();
   const { notify } = useUI();
   const existing = products.find((p) => p.id === id && p.farmerId === user.id);
   const key = `f2h:draft:${user.id}:${id || 'new'}`;
@@ -40,12 +40,11 @@ export default function ProductForm() {
         availableDate: '',
         expiryDate: '',
         method: 'Conventional',
-        quantity: 50,
+        quantity: '',
         unit: 'kg',
         quality: 'Grade A',
         district: user.district || 'Vavuniya',
         city: user.city || 'Vavuniya',
-        location: '',
         price: '',
         bulkPrice: '',
         bulkThreshold: 20,
@@ -60,7 +59,8 @@ export default function ProductForm() {
     );
   });
   const [step, setStep] = useState(0),
-    [errors, setErrors] = useState({});
+    [errors, setErrors] = useState({}),
+    [saving, setSaving] = useState(false);
   useEffect(() => {
     try {
       sessionStorage.setItem(key, JSON.stringify(form));
@@ -119,7 +119,12 @@ export default function ProductForm() {
     setErrors(e);
     if (!Object.keys(e).length) setStep(Math.min(8, step + 1));
   }
-  function save(draft = false) {
+  async function save(draft = false) {
+    if (draft) {
+      sessionStorage.setItem(key, JSON.stringify(form));
+      notify('Draft saved on this device.');
+      return;
+    }
     if (!draft) {
       for (let s = 0; s < 8; s++) {
         const e = validate(s);
@@ -132,7 +137,7 @@ export default function ProductForm() {
     }
     const product = {
       ...form,
-      id: existing?.id || crypto.randomUUID(),
+      id: existing?.id,
       farmerId: user.id,
       quantity: Number(form.quantity),
       price: Number(form.price),
@@ -146,11 +151,18 @@ export default function ProductForm() {
       createdAt: existing?.createdAt || new Date().toISOString(),
       availability: Number(form.quantity) === 0 ? 'Sold Out' : form.availability,
     };
-    setProducts((old) =>
-      existing ? old.map((p) => (p.id === existing.id ? product : p)) : [product, ...old],
-    );
+    if (saving) return;
+    setSaving(true);
+    try {
+      await saveProduct(product);
+    } catch (failure) {
+      notify(failure.message, 'error');
+      return;
+    } finally {
+      setSaving(false);
+    }
     sessionStorage.removeItem(key);
-    notify(draft ? 'Draft saved.' : existing ? 'Product updated.' : 'Your harvest is live!');
+    notify(existing ? 'Product updated.' : 'Your harvest is live!');
     navigate('/farmer/products');
   }
   if (id && !existing)
@@ -259,9 +271,7 @@ export default function ProductForm() {
                 onChange={(e) => set('city', e.target.value)}
               />
             </div>
-            {input('location', 'Approximate farm location', 'text', {
-              placeholder: 'Village or nearby landmark, no private home coordinates',
-            })}
+
             <p className="muted">Only the approximate farm region is shown publicly.</p>
           </>
         )}
@@ -366,7 +376,7 @@ export default function ProductForm() {
               <ArrowRight size={16} />
             </button>
           ) : (
-            <button className="btn" onClick={() => save(false)}>
+            <button className="btn" disabled={saving} onClick={() => save(false)}>
               {existing ? 'Save changes' : 'Publish product'}
               <Check size={17} />
             </button>

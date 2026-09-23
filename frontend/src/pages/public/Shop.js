@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, SlidersHorizontal, X, Leaf } from 'lucide-react';
 import { useMarket } from '../../context/AppContext';
-import { categories, districts, towns, methods, qualities, statuses } from '../../data/seed';
+import { categories, districts, towns, methods, qualities, statuses } from '../../data/catalog';
 import { filterProducts } from '../../utils/helpers';
 import {
   PageHeading,

@@ -23,4 +23,3 @@ api.interceptors.response.use(
     return Promise.reject(error);
   },
 );
-export const delay = (ms = 250) => new Promise((resolve) => setTimeout(resolve, ms));

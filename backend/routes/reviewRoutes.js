@@ -10,6 +10,14 @@ import { reviewInput, page } from "../validation/schemas.js";
 import { asyncHandler as wrap } from "../utils/asyncHandler.js";
 
 const router = Router();
+router.get("/reviews", validate(page.strict(), "query"), wrap(controller.list));
+router.get(
+  "/reviews/my",
+  protect,
+  authorize("customer"),
+  validate(page.strict(), "query"),
+  wrap(controller.mine),
+);
 router.param("productId", validateId);
 router.param("farmerId", validateId);
 router.post(

@@ -1,3 +1,4 @@
+import { productView } from '../../services/adapters';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -10,7 +11,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import { useAuth, useMarket, useCart, useWishlist } from '../../context/AppContext';
-import { districts, towns } from '../../data/seed';
+import { districts, towns } from '../../data/catalog';
 import { money, unitPrice, validPhone } from '../../utils/helpers';
 import {
   PageHeading,
@@ -44,22 +45,38 @@ export function Wishlist() {
   );
 }
 function useBasket() {
-  const { cart } = useCart();
+  const { cart, deliveryCharge } = useCart();
   const { products, farmers } = useMarket();
-  const rows = cart
-    .map((item) => ({ ...item, product: products.find((p) => p.id === item.productId) }))
-    .filter((i) => i.product);
+  const rows = cart.map((item) => ({
+    ...item,
+    product: {
+      ...(item.product
+        ? productView(item.product)
+        : {
+            id: item.productId,
+            name: 'Unavailable product',
+            images: [],
+            quantity: 0,
+            price: 0,
+            unit: '',
+          }),
+      unavailable: item.unavailable,
+      price: item.unitPrice || 0,
+      bulkPrice: 0,
+      isBulkPrice: item.isBulkPrice,
+    },
+  }));
   const groups = Object.groupBy
     ? Object.groupBy(rows, (i) => i.product.farmerId)
     : rows.reduce(
         (o, i) => ({ ...o, [i.product.farmerId]: [...(o[i.product.farmerId] || []), i] }),
         {},
       );
-  const subtotal = rows.reduce((s, i) => s + unitPrice(i.product, i.quantity) * i.quantity, 0);
-  return { rows, groups, subtotal, farmers };
+  const subtotal = rows.reduce((sum, item) => sum + (item.lineTotal || 0), 0);
+  return { rows, groups, subtotal, farmers, deliveryCharge };
 }
 export function Cart() {
-  const { rows, groups, subtotal, farmers } = useBasket();
+  const { rows, groups, subtotal, farmers, deliveryCharge } = useBasket();
   const { updateQuantity, removeFromCart } = useCart();
   if (!rows.length)
     return (
@@ -68,7 +85,7 @@ export function Cart() {
         description="Let’s fill it with something fresh from a local farm."
       />
     );
-  const delivery = Object.keys(groups).length * 250;
+  const delivery = Object.keys(groups).length * deliveryCharge;
   return (
     <>
       <PageHeading
@@ -96,11 +113,14 @@ export function Cart() {
                     <p>
                       {money(unitPrice(p, quantity))} / {p.unit}
                     </p>
-                    {quantity >= p.bulkThreshold && p.bulkPrice > 0 && (
-                      <span className="badge green">Bulk price applied</span>
-                    )}
+                    {p.isBulkPrice && <span className="badge green">Bulk price applied</span>}
                     {p.availability === 'Upcoming Harvest' && (
                       <span className="badge amber">Pre-order · {p.availableDate}</span>
+                    )}
+                    {p.unavailable && (
+                      <p className="error-text">
+                        This item is unavailable. Remove it or update its quantity.
+                      </p>
                     )}
                     <QuantitySelector
                       value={quantity}
@@ -141,7 +161,7 @@ export function Cart() {
             <span>Delivery estimate</span>
             <strong>{money(delivery)}</strong>
           </div>
-          <small>Rs. 250 per farm. Pickup is free.</small>
+          <small>{money(deliveryCharge)} per farm. Pickup is free.</small>
           <div className="summary-total">
             <span>Estimated total</span>
             <strong>{money(subtotal + delivery)}</strong>
@@ -166,7 +186,7 @@ function SproutIcon() {
 export function Checkout() {
   const { user } = useAuth();
   const { placeOrder } = useMarket();
-  const { rows, groups, subtotal } = useBasket();
+  const { rows, groups, subtotal, deliveryCharge } = useBasket();
   const [form, setForm] = useState({
     name: user.name,
     phone: user.phone || '',
@@ -180,7 +200,8 @@ export function Checkout() {
   const navigate = useNavigate();
   const set = (k, v) =>
     setForm((f) => ({ ...f, [k]: v, ...(k === 'district' ? { city: towns[v][0] } : {}) }));
-  const delivery = form.fulfillment === 'delivery' ? Object.keys(groups).length * 250 : 0;
+  const delivery =
+    form.fulfillment === 'delivery' ? Object.keys(groups).length * deliveryCharge : 0;
   if (!rows.length) return <EmptyState title="Your basket is empty." />;
   return (
     <>
@@ -196,7 +217,7 @@ export function Checkout() {
           if (!validPhone(form.phone)) return setError('Enter a valid Sri Lankan phone number.');
           setBusy(true);
           try {
-            placeOrder({
+            await placeOrder({
               ...form,
               payment: form.fulfillment === 'delivery' ? 'Cash on Delivery' : 'Pay on Pickup',
             });
@@ -235,7 +256,7 @@ export function Checkout() {
             </h2>
             <div className="fulfillment-options">
               {[
-                ['delivery', 'Home delivery', 'Rs. 250 per farm', Truck],
+                ['delivery', 'Home delivery', `${money(deliveryCharge)} per farm`, Truck],
                 ['pickup', 'Farm pickup', 'Free · collect from each farm', MapPin],
               ].map(([value, title, description, Icon]) => (
                 <label key={value} className={form.fulfillment === value ? 'selected' : ''}>
@@ -278,7 +299,7 @@ export function Checkout() {
                 </div>
               </>
             )}
-            {rows.some((i) => !i.product[form.fulfillment]) && (
+            {rows.some((i) => i.unavailable || !i.product[form.fulfillment]) && (
               <p className="error-text">
                 Some products do not support {form.fulfillment}. Choose another option or update
                 your cart.
@@ -334,12 +355,12 @@ export function Checkout() {
           )}
           <button
             className="btn full"
-            disabled={busy || rows.some((i) => !i.product[form.fulfillment])}
+            disabled={busy || rows.some((i) => i.unavailable || !i.product[form.fulfillment])}
           >
             {busy ? 'Placing order…' : 'Place order'}
             <ArrowRight size={17} />
           </button>
-          <small>Each farm receives a separate order. All orders in this demo are fictional.</small>
+          <small>Each farm receives a separate order.</small>
         </aside>
       </form>
     </>
@@ -350,7 +371,7 @@ export function OrderSuccess() {
   const { user } = useAuth();
   let ids = [];
   try {
-    ids = JSON.parse(sessionStorage.getItem('f2h:lastOrders') || '[]');
+    ids = JSON.parse(sessionStorage.getItem('f2h:checkoutResult') || '[]');
   } catch {}
   const placed = orders.filter((o) => ids.includes(o.id) && o.customerId === user.id);
   if (!placed.length) return <EmptyState title="No recent order to show." />;

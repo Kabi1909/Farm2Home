@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { MapPin, Sprout, Truck } from 'lucide-react';
 import { useMarket } from '../../context/AppContext';
-import { districts, methods } from '../../data/seed';
+import { districts, methods } from '../../data/catalog';
 import {
   PageHeading,
   Field,
@@ -101,12 +101,14 @@ export function Farmers() {
         <div className="farmer-community-stats">
           <div>
             <Sprout />
-            <strong>{farmers.length}+</strong>
+            <strong>{farmers.length}</strong>
             <span>Local Farmers</span>
           </div>
           <div>
             <Truck />
-            <strong>25</strong>
+            <strong>
+              {new Set(farmers.map((farmer) => farmer.district).filter(Boolean)).size}
+            </strong>
             <span>Districts Covered</span>
           </div>
           <div>
@@ -116,7 +118,7 @@ export function Farmers() {
           </div>
           <div>
             <Sprout />
-            <strong>100%</strong>
+            <strong>Grow</strong>
             <span>Support Local</span>
           </div>
           <blockquote>

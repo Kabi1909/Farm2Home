@@ -173,11 +173,13 @@ Timeouts, malformed predictions and upstream errors return 503 with: “Price su
 
 ## Frontend integration boundary
 
-The existing React design, cart animation and hero animation remain intact. `frontend/src/services/marketplaceApi.js` exposes Axios adapters for every backend area and stores a backend login token in session storage. It retains list pagination and notification unread counts. The original `AppContext` and mock service repositories are **still the default source for the existing marketplace screens**; these screens have not all been migrated to server state.
+The React frontend now loads marketplace and account state from these APIs. Configure VITE_API_URL=http://localhost:5000/api in the frontend environment and run both applications. The old browser record repositories, demo accounts and generated advisor results have been removed.
 
-Set `VITE_API_URL=http://localhost:5000/api`. `VITE_PRICE_ADVISOR_MODE=api` opts only the advisor into the real Express endpoint and requires a backend farmer JWT obtained through `marketplaceApi.auth.login`. The existing mock login does not create that JWT. Keep advisor mode `mock` for the existing standalone demo. These modes are intentionally explicit; setting the API URL alone does not migrate the application. Complete screen-by-screen Context integration before a live marketplace deployment.
+The frontend adapters map IDs, image assets, bulk thresholds, availability and order snapshots into the existing views. Cart updates use server cart-item IDs and totals. The API now exposes public GET /reviews, authenticated customer GET /reviews/my, and authenticated PUT /auth/password with currentPassword, password and confirmPassword. Changing a password revokes previous tokens and returns a new token for the current session.
 
-Adapters return backend DTOs: use `id`/`_id`, `farmer` instead of mock `farmerId`, image objects instead of string URLs, `minimumBulkQuantity` instead of `bulkThreshold`, `isActive` instead of `enabled`, and `availabilityStatus` instead of `availability`. Cart updates use the returned cart item ID. Use server totals; never merge mock orders into a backend account.
+Image uploads require Cloudinary configuration. AI suggestions require the configured external price service; unavailability remains an explicit error and manual pricing is supported. Contact messages, newsletters and forgotten-password recovery are not implemented and cannot report a successful submission in the frontend.
+
+Frontend integration tests in the backend test suite import the frontend API adapters, so install dependencies in both backend and frontend before running the complete suite. Test databases are isolated and do not modify local application records.
 
 ## Fictional development seed
 

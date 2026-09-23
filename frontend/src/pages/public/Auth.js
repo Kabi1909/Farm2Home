@@ -4,8 +4,8 @@ import { Sprout, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useAuth, useUI } from '../../context/AppContext';
 import * as auth from '../../services/authService';
 import { validPhone } from '../../utils/helpers';
-import { Field, Checkbox } from '../../components/common/UI';
-import { images } from '../../data/seed';
+import { Field } from '../../components/common/UI';
+import { images } from '../../data/catalog';
 export default function Auth({ mode = 'login' }) {
   const [params] = useSearchParams();
   const [form, setForm] = useState({
@@ -15,12 +15,10 @@ export default function Auth({ mode = 'login' }) {
     password: '',
     confirm: '',
     role: params.get('role') === 'farmer' ? 'farmer' : 'customer',
-    remember: true,
   });
   const [show, setShow] = useState(false),
     [loading, setLoading] = useState(false),
-    [error, setError] = useState(''),
-    [sent, setSent] = useState(false);
+    [error, setError] = useState('');
   const { signIn } = useAuth();
   const { notify } = useUI();
   const navigate = useNavigate(),
@@ -38,29 +36,17 @@ export default function Auth({ mode = 'login' }) {
       return setError('Passwords do not match.');
     setLoading(true);
     try {
-      if (forgot) {
-        sessionStorage.setItem('f2h:resetEmail', form.email);
-        setSent(true);
-      } else if (reset) {
-        if (sessionStorage.getItem('f2h:resetEmail') !== form.email)
-          throw new Error('Start from Forgot password to create a demo reset request.');
-        auth.resetPassword(form.email, form.password);
-        sessionStorage.removeItem('f2h:resetEmail');
-        notify('Demo password updated. You can sign in.');
+      const account = registering
+        ? await auth.register(form)
+        : await auth.login(form.email, form.password);
+      if (registering) {
+        notify('Account created. Please sign in.');
         navigate('/login');
       } else {
-        const account = registering
-          ? await auth.register(form)
-          : await auth.login(form.email, form.password);
-        if (registering) {
-          notify('Account created. Please sign in.');
-          navigate('/login');
-        } else {
-          signIn(account, form.remember);
-          notify('Welcome back, ' + account.name.split(' ')[0] + '.');
-          const from = location.state?.from;
-          navigate(from?.startsWith('/' + account.role) ? from : `/${account.role}/dashboard`);
-        }
+        await signIn(account);
+        notify('Welcome back, ' + account.name.split(' ')[0] + '.');
+        const from = location.state?.from;
+        navigate(from?.startsWith('/' + account.role) ? from : `/${account.role}/dashboard`);
       }
     } catch (err) {
       setError(err.message);
@@ -106,18 +92,15 @@ export default function Auth({ mode = 'login' }) {
           {registering
             ? 'Your journey to fresher food starts here.'
             : forgot
-              ? 'Create a local demo password reset request.'
+              ? 'Account recovery'
               : reset
-                ? 'Choose a new password for your demo account.'
+                ? 'Account recovery'
                 : 'Fresh finds and familiar farms are waiting.'}
         </p>
-        {sent ? (
-          <div className="notice">
-            <h3>Demo reset link ready</h3>
-            <p>This frontend demo does not send email.</p>
-            <Link className="btn" to={'/reset-password?email=' + encodeURIComponent(form.email)}>
-              Reset demo password
-            </Link>
+        {forgot || reset ? (
+          <div className="notice" role="status">
+            <p>Password recovery is not available yet. No reset request has been sent.</p>
+            <Link to="/login">Back to sign in</Link>
           </div>
         ) : (
           <form onSubmit={submit}>
@@ -166,7 +149,7 @@ export default function Auth({ mode = 'login' }) {
                 <div className="password-input">
                   <input
                     required
-                    minLength={registering || reset ? 8 : 1}
+                    minLength={registering || reset ? 10 : 1}
                     type={show ? 'text' : 'password'}
                     value={form.password}
                     onChange={(e) => set('password', e.target.value)}
@@ -188,8 +171,8 @@ export default function Auth({ mode = 'login' }) {
                   <span style={{ width: `${Math.min(100, form.password.length * 8)}%` }} />
                 </div>
                 <small>
-                  {form.password.length < 8
-                    ? 'Use at least 8 characters'
+                  {form.password.length < 10
+                    ? 'Use at least 10 characters, including uppercase, lowercase, a number and a symbol'
                     : /[0-9]/.test(form.password) && /[^a-zA-Z0-9]/.test(form.password)
                       ? 'Strong password'
                       : 'Add a number and symbol for a stronger password'}
@@ -198,7 +181,7 @@ export default function Auth({ mode = 'login' }) {
                   label="Confirm password"
                   type={show ? 'text' : 'password'}
                   required
-                  minLength={8}
+                  minLength={10}
                   value={form.confirm}
                   onChange={(e) => set('confirm', e.target.value)}
                 />
@@ -206,11 +189,6 @@ export default function Auth({ mode = 'login' }) {
             )}
             {mode === 'login' && (
               <div className="between">
-                <Checkbox
-                  label="Remember me"
-                  checked={form.remember}
-                  onChange={(e) => set('remember', e.target.checked)}
-                />
                 <Link to="/forgot-password">Forgot password?</Link>
               </div>
             )}
@@ -239,28 +217,6 @@ export default function Auth({ mode = 'login' }) {
             {registering ? 'Sign in' : 'Create an account'}
           </Link>
         </p>
-        {mode === 'login' && (
-          <div className="demo-box">
-            <strong>Take a look around</strong>
-            <p>
-              Demo password: <code>Farm123!</code>
-            </p>
-            <div className="actions">
-              {['customer', 'farmer'].map((role) => (
-                <button
-                  key={role}
-                  type="button"
-                  className="btn small secondary"
-                  onClick={() =>
-                    setForm((f) => ({ ...f, email: role + '@farm2home.lk', password: 'Farm123!' }))
-                  }
-                >
-                  {role} demo
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </main>
   );

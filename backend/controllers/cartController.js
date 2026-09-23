@@ -28,6 +28,11 @@ export async function cartData(customer) {
             price: product.price,
             bulkPrice: product.bulkPrice,
             minimumBulkQuantity: product.minimumBulkQuantity,
+            availabilityStatus: product.availabilityStatus,
+            isActive: product.isActive && !product.isDeleted,
+            deliveryAvailable: product.deliveryAvailable,
+            pickupAvailable: product.pickupAvailable,
+            availableDate: product.availableDate,
           }
         : null,
       quantity: item.quantity,
@@ -43,7 +48,10 @@ export async function cartData(customer) {
   };
 }
 export async function get(req, res) {
-  respond(res, await cartData(req.user._id));
+  respond(res, {
+    ...(await cartData(req.user._id)),
+    deliveryCharge: req.app.locals.config.DELIVERY_CHARGE,
+  });
 }
 export async function write(req, res) {
   await mongoose.connection.transaction(async (session) => {

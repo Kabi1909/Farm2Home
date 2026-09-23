@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Star, ArrowRight } from 'lucide-react';
 import { useMarket } from '../../context/AppContext';
-import { categories, images } from '../../data/seed';
+import { categories, images } from '../../data/catalog';
 import FarmBanner from '../../components/common/FarmBanner';
 import { CategoryCard } from '../../components/product/ProductCard';
 import { Breadcrumbs, Img } from '../../components/common/UI';
@@ -36,8 +36,8 @@ export default function Categories() {
           <div>
             <Star size={30} fill="#f3b42d" color="#e6a118" />
             <span>
-              <h3>Popular This Season</h3>
-              <p>Explore trending categories this month</p>
+              <h3>Explore Fresh Produce</h3>
+              <p>Browse local produce by name</p>
             </span>
           </div>
           {[
@@ -53,8 +53,12 @@ export default function Categories() {
                 <strong>{name}</strong>
                 <small>
                   {
-                    products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
-                      .length
+                    products.filter(
+                      (p) =>
+                        p.enabled &&
+                        !p.draft &&
+                        p.name.toLowerCase().includes(search.toLowerCase()),
+                    ).length
                   }{' '}
                   Products
                 </small>

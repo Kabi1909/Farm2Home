@@ -1,330 +1,386 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { cartAdditionError } from '../utils/cartValidation';
-import * as seed from '../data/seed';
-import { readStore, writeStore, unitPrice } from '../utils/helpers';
-import { updateAccount } from '../services/authService';
-const AuthContext = createContext();
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { marketplaceApi as client } from '../services/marketplaceApi.js';
+import {
+  allPages,
+  productView,
+  farmerView,
+  userView,
+  orderView,
+  reviewView,
+  notificationView,
+  productPayload,
+} from '../services/adapters.js';
+export const AuthContext = createContext();
 const ProductContext = createContext();
-const CartContext = createContext();
-const WishlistContext = createContext();
-const NotificationContext = createContext();
+export const CartContext = createContext();
+export const WishlistContext = createContext();
+export const NotificationContext = createContext();
 const UIContext = createContext();
-export { AuthContext, CartContext, WishlistContext, NotificationContext };
 export const useAuth = () => useContext(AuthContext);
 export const useMarket = () => useContext(ProductContext);
 export const useCart = () => useContext(CartContext);
 export const useWishlist = () => useContext(WishlistContext);
 export const useNotifications = () => useContext(NotificationContext);
 export const useUI = () => useContext(UIContext);
-function usePersist(key, initial) {
-  const [value, setValue] = useState(() => readStore(key, initial));
-  useEffect(() => {
-    try {
-      writeStore(key, value);
-    } catch {
-      window.dispatchEvent(new CustomEvent('storage-error'));
-    }
-  }, [key, value]);
-  return [value, setValue];
+const merge = (...lists) => [...new Map(lists.flat().map((value) => [value.id, value])).values()];
+const empty = {
+  products: [],
+  farmers: [],
+  orders: [],
+  reviews: [],
+  cart: [],
+  wishlist: [],
+  notifications: [],
+  prices: [],
+  deliveryCharge: 0,
+};
+function removeLegacyRecords() {
+  for (const storage of [localStorage, sessionStorage]) {
+    for (const key of [
+      'accounts',
+      'user',
+      'products',
+      'farmers',
+      'orders',
+      'reviews',
+      'cart',
+      'wishlist',
+      'notifications',
+      'recent',
+      'resetEmail',
+      'lastOrders',
+      'newsletter',
+      'contactDraft',
+    ])
+      storage.removeItem(`f2h:${key}`);
+  }
 }
 export function Providers({ children }) {
-  const [user, setUser] = useState(() => {
-    try {
-      return JSON.parse(
-        localStorage.getItem('f2h:user') || sessionStorage.getItem('f2h:user') || 'null',
-      );
-    } catch {
-      return null;
-    }
-  });
-  const [products, setProducts] = usePersist('products', seed.products),
-    [farmers, setFarmers] = usePersist('farmers', seed.farmers),
-    [orders, setOrders] = usePersist('orders', seed.orders),
-    [reviews, setReviews] = usePersist('reviews', seed.reviews),
-    [allCart, persistAllCart] = usePersist('cart', {}),
-    [allWish, setAllWish] = usePersist('wishlist', {}),
-    [notifications, setNotifications] = usePersist('notifications', seed.notifications),
-    [recent, setRecent] = usePersist('recent', []);
-  // Keep synchronous reads current even when several clicks share a React batch.
-  const cartSnapshot = useRef(allCart);
-  const setAllCart = (updater) => {
-    const next = typeof updater === 'function' ? updater(cartSnapshot.current) : updater;
-    cartSnapshot.current = next;
-    persistAllCart(next);
-  };
-  const [toast, setToast] = useState(null);
-  const notify = (message, type = 'success') => setToast({ message, type, key: Date.now() });
+  const [user, setUser] = useState(null),
+    [state, setState] = useState(empty);
+  const [loading, setLoading] = useState(true),
+    [error, setError] = useState('');
+  const [toast, setToast] = useState(null),
+    [recent, setRecent] = useState([]);
+  const version = useRef(0),
+    account = useRef(null),
+    cartQueue = useRef(Promise.resolve()),
+    checkoutAttempt = useRef(null);
+  const notify = useCallback(
+    (message, type = 'success') => setToast({ message, type, key: Date.now() }),
+    [],
+  );
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => setToast(null), 4000);
       return () => clearTimeout(timer);
     }
   }, [toast]);
-  useEffect(() => {
-    const handle = () =>
-      notify('Browser storage is full. Remove some uploaded images to save changes.', 'error');
-    window.addEventListener('storage-error', handle);
-    return () => window.removeEventListener('storage-error', handle);
-  }, []);
-  const signIn = (account, remember) => {
-    // Keep the visitor's basket and saved finds when they become a customer.
-    if (!user && account.role === 'customer') {
-      setAllCart((old) => {
-        const merged = [...(old[account.id] || [])];
-        for (const item of old.guest || []) {
-          const product = products.find((p) => p.id === item.productId);
-          if (!product || product.quantity < 1 || !product.enabled || product.draft) continue;
-          const index = merged.findIndex((row) => row.productId === item.productId);
-          const quantity = Math.min(
-            product.quantity,
-            item.quantity + (merged[index]?.quantity || 0),
-          );
-          if (index >= 0) merged[index] = { ...item, quantity };
-          else merged.push({ ...item, quantity });
-        }
-        return { ...old, guest: [], [account.id]: merged };
-      });
-      setAllWish((old) => ({
-        ...old,
-        guest: [],
-        [account.id]: [...new Set([...(old[account.id] || []), ...(old.guest || [])])],
-      }));
-    }
-    localStorage.removeItem('f2h:user');
-    sessionStorage.removeItem('f2h:user');
-    (remember ? localStorage : sessionStorage).setItem('f2h:user', JSON.stringify(account));
-    setUser(account);
-  };
-  const logout = () => {
-    localStorage.removeItem('f2h:user');
-    sessionStorage.removeItem('f2h:user');
-    setUser(null);
-    notify('You have signed out.');
-  };
-  const updateProfile = (changes) => {
-    const updated = { ...user, ...changes };
-    updateAccount(user.id, changes);
-    signIn(updated, !!localStorage.getItem('f2h:user'));
-    if (user.role === 'farmer')
-      setFarmers((old) =>
-        old.some((f) => f.id === user.id)
-          ? old.map((f) => (f.id === user.id ? { ...f, ...changes } : f))
-          : [...old, { ...updated, rating: 0, completed: 0, lat: 7.87, lng: 80.77 }],
-      );
-    notify('Profile saved.');
-  };
-  const owner = user?.id || 'guest';
-  const cart = allCart[owner] || [];
-  const setCart = (updater) =>
-    setAllCart((old) => ({
-      ...old,
-      [owner]: typeof updater === 'function' ? updater(old[owner] || []) : updater,
-    }));
-  const wishlist = allWish[owner] || [];
-  const addToCart = (requested, quantity = 1, { silentSuccess = false } = {}) => {
-    if (user?.role === 'farmer') {
-      notify('Sign in as a customer to shop.', 'error');
-      return false;
-    }
-    const product = products.find((item) => item.id === requested.id);
-    const existing =
-      (cartSnapshot.current[owner] || []).find((item) => item.productId === requested.id)
-        ?.quantity || 0;
-    const error = cartAdditionError(product, quantity, existing);
-    if (error) {
-      notify(error, 'error');
-      return false;
-    }
-    setCart((old) =>
-      old.some((item) => item.productId === product.id)
-        ? old.map((item) =>
-            item.productId === product.id ? { ...item, quantity: item.quantity + quantity } : item,
-          )
-        : [...old, { productId: product.id, quantity }],
-    );
-    if (!silentSuccess) notify(`${product.name} added to cart`);
-    return true;
-  };
-  const updateQuantity = (id, quantity) => {
-    const p = products.find((p) => p.id === id);
-    if (!p || !Number.isInteger(quantity) || quantity < 1 || quantity > p.quantity) {
-      notify('Quantity must be a whole number within available stock.', 'error');
-      return;
-    }
-    setCart((old) => old.map((c) => (c.productId === id ? { ...c, quantity } : c)));
-  };
-  const toggleWish = (id) => {
-    setAllWish((old) => ({
-      ...old,
-      [owner]: (old[owner] || []).includes(id)
-        ? old[owner].filter((x) => x !== id)
-        : [...(old[owner] || []), id],
-    }));
-  };
-  const addNotice = (userId, title, path) =>
-    setNotifications((old) => [
-      {
-        id: crypto.randomUUID(),
-        userId,
-        title,
-        message: 'Open to see the latest details.',
-        path,
-        read: false,
-        date: new Date().toISOString().slice(0, 10),
-      },
-      ...old,
+  const refresh = useCallback(async (identity = account.current) => {
+    const request = ++version.current;
+    const [products, farmers, reviews, prices] = await Promise.all([
+      allPages(client.products.list),
+      allPages(client.farmers.list),
+      allPages(client.reviews.list),
+      allPages(client.prices.recent),
     ]);
-  const placeOrder = (details) => {
-    if (!user || user.role !== 'customer') throw new Error('Please sign in as a customer.');
-    if (!cart.length) throw new Error('Your basket is empty.');
-    const groups = {};
-    for (const item of cart) {
-      const p = products.find((p) => p.id === item.productId);
-      if (
-        !p ||
-        p.draft ||
-        !p.enabled ||
-        p.quantity < item.quantity ||
-        p.availability === 'Sold Out'
-      )
-        throw new Error('Some products are no longer available. Please update your basket.');
-      if (!p[details.fulfillment])
-        throw new Error(`${p.name} does not support this fulfillment option.`);
-      (groups[p.farmerId] ??= []).push({
-        ...item,
-        name: p.name,
-        image: p.images[0],
-        unit: p.unit,
-        price: unitPrice(p, item.quantity),
-        preorder: p.availability === 'Upcoming Harvest',
-        availableDate: p.availableDate,
-      });
+    const next = {
+      ...empty,
+      products: products.map(productView),
+      farmers: farmers.map(farmerView),
+      reviews: reviews.map(reviewView),
+      prices,
+    };
+    let currentUser = null;
+    if (identity) {
+      currentUser = userView(identity, await client[identity.role].profile());
+      const [orders, notices] = await Promise.all([
+        allPages(identity.role === 'farmer' ? client.farmer.orders : client.orders.list),
+        allPages(client.notifications.list),
+      ]);
+      next.orders = orders.map(orderView);
+      next.notifications = notices.map((value) => notificationView(value, identity.role));
+      if (identity.role === 'farmer')
+        next.products = merge(
+          next.products,
+          (await allPages(client.farmer.products)).map(productView),
+        );
+      else {
+        const [basket, saved, ownReviews] = await Promise.all([
+          client.cart.get(),
+          client.wishlist.get(),
+          allPages(client.reviews.mine),
+        ]);
+        next.cart = basket.items.map((item) => ({ ...item, productId: item.productId || item.id }));
+        next.deliveryCharge = basket.deliveryCharge;
+        next.wishlist = saved.map((item) => item.id);
+        next.products = merge(next.products, saved.map(productView));
+        next.reviews = merge(next.reviews, ownReviews.map(reviewView));
+      }
     }
-    const placed = Object.entries(groups).map(([farmerId, items]) => {
-      const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0),
-        deliveryFee = details.fulfillment === 'delivery' ? 250 : 0;
-      return {
-        ...details,
-        id: 'F2H-' + crypto.randomUUID().slice(0, 8).toUpperCase(),
-        customerId: user.id,
-        customer: details.name,
-        farmerId,
-        items,
-        subtotal,
-        deliveryFee,
-        total: subtotal + deliveryFee,
-        status: 'Pending',
-        date: new Date().toISOString().slice(0, 10),
-        estimatedDate: items.reduce(
-          (latest, i) => (i.preorder && i.availableDate > latest ? i.availableDate : latest),
-          new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
-        ),
-      };
-    });
-    setOrders((old) => [...placed, ...old]);
-    setProducts((old) =>
-      old.map((p) => {
-        const item = cart.find((c) => c.productId === p.id);
-        if (!item) return p;
-        const quantity = p.quantity - item.quantity;
-        return {
-          ...p,
-          quantity,
-          availability:
-            quantity === 0
-              ? 'Sold Out'
-              : p.availability === 'Upcoming Harvest'
-                ? 'Upcoming Harvest'
-                : quantity < 5
-                  ? 'Low Stock'
-                  : 'Available',
+    if (request !== version.current) return;
+    account.current = identity;
+    setUser(currentUser);
+    setState(next);
+  }, []);
+  const initialize = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      let identity = null;
+      if (sessionStorage.getItem('f2h:token')) {
+        try {
+          identity = await client.auth.me();
+        } catch (failure) {
+          if (failure.status === 401) sessionStorage.removeItem('f2h:token');
+          else throw failure;
+        }
+      }
+      await refresh(identity);
+    } catch (failure) {
+      setError(failure.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [refresh]);
+  useEffect(() => {
+    removeLegacyRecords();
+    void initialize();
+    return () => {
+      version.current += 1;
+    };
+  }, [initialize]);
+  async function signIn(identity) {
+    await refresh(identity);
+  }
+  async function logout() {
+    try {
+      await client.auth.logout();
+    } catch (failure) {
+      notify(failure.message, 'error');
+    } finally {
+      version.current += 1;
+      account.current = null;
+      sessionStorage.removeItem('f2h:token');
+      sessionStorage.removeItem('f2h:checkoutResult');
+      setUser(null);
+      setState(empty);
+      setRecent([]);
+      await initialize();
+    }
+  }
+  async function updateProfile(form) {
+    if (user.image && !form.image)
+      throw new Error('Please choose a replacement profile image before saving.');
+    if (form.image?.startsWith('data:image/')) {
+      const blob = await (await fetch(form.image)).blob();
+      await client.upload([new File([blob], 'profile.jpg', { type: blob.type })], 'profile');
+    }
+    const fields = {
+      name: form.name,
+      phone: form.phone.replaceAll(' ', ''),
+      district: form.district,
+      city: form.city,
+    };
+    if (user.role === 'farmer')
+      Object.assign(fields, {
+        farmName: form.farm,
+        description: form.description || undefined,
+        farmSize: Number(form.size) || 0,
+        yearsExperience: Number(form.experience) || 0,
+        mainCrops: (form.crops || '')
+          .split(',')
+          .map((v) => v.trim())
+          .filter(Boolean),
+        farmingMethods: form.method ? [form.method] : [],
+        deliveryAvailable: !!form.delivery,
+        pickupAvailable: !!form.pickup,
+      });
+    else {
+      fields.preferredProducts = (form.preferences || '')
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean);
+      if (form.address) {
+        const address = {
+          recipientName: form.name,
+          phone: fields.phone,
+          addressLine: form.address,
+          district: form.district,
+          city: form.city,
+          isDefault: true,
         };
+        if (user.addressId) await client.customer.updateAddress(user.addressId, address);
+        else await client.customer.addAddress(address);
+      } else if (user.addressId) await client.customer.removeAddress(user.addressId);
+    }
+    await client[user.role].updateProfile(fields);
+    await refresh(await client.auth.me());
+    notify('Profile saved.');
+  }
+  function customerAction(action) {
+    if (account.current?.role !== 'customer') {
+      notify('Please sign in as a customer to shop.', 'error');
+      return Promise.resolve(false);
+    }
+    const identity = account.current;
+    cartQueue.current = cartQueue.current
+      .catch(() => {})
+      .then(async () => {
+        if (identity !== account.current) return false;
+        try {
+          const result = await action();
+          if (identity !== account.current) return false;
+          setState((current) =>
+            Array.isArray(result)
+              ? {
+                  ...current,
+                  wishlist: result.map((item) => item.id),
+                  products: merge(current.products, result.map(productView)),
+                }
+              : {
+                  ...current,
+                  cart: result.items.map((item) => ({
+                    ...item,
+                    productId: item.productId || item.id,
+                  })),
+                },
+          );
+          return true;
+        } catch (failure) {
+          notify(failure.message, 'error');
+          return false;
+        }
+      });
+    return cartQueue.current;
+  }
+  async function addToCart(product, quantity = 1, { silentSuccess = false } = {}) {
+    const added = await customerAction(() => client.cart.add(product.id, quantity));
+    if (added && !silentSuccess) notify(`${product.name} added to cart`);
+    return added;
+  }
+  const basketItem = (productId) => state.cart.find((item) => item.productId === productId);
+  const updateQuantity = (productId, quantity) =>
+    customerAction(() => client.cart.update(basketItem(productId)?.id, quantity));
+  const removeFromCart = (productId) =>
+    customerAction(() => client.cart.remove(basketItem(productId)?.id));
+  const toggleWish = (productId) =>
+    customerAction(async () => {
+      const saved = await client.wishlist.get();
+      return saved.some((item) => item.id === productId)
+        ? client.wishlist.remove(productId)
+        : client.wishlist.add(productId);
+    });
+  async function placeOrder(form) {
+    const input = {
+      fulfillmentMethod: form.fulfillment,
+      paymentMethod: form.fulfillment === 'delivery' ? 'cash_on_delivery' : 'pay_on_pickup',
+      ...(form.fulfillment === 'delivery' && {
+        deliveryAddress: {
+          recipientName: form.name,
+          phone: form.phone.replaceAll(' ', ''),
+          addressLine: form.address,
+          district: form.district,
+          city: form.city,
+        },
       }),
-    );
-    placed.forEach((o) => addNotice(o.farmerId, 'New order ' + o.id, '/farmer/orders/' + o.id));
-    setCart([]);
-    sessionStorage.setItem('f2h:lastOrders', JSON.stringify(placed.map((o) => o.id)));
+    };
+    const signature = JSON.stringify(input);
+    if (checkoutAttempt.current?.signature !== signature)
+      checkoutAttempt.current = { signature, key: crypto.randomUUID() };
+    const placed = await client.orders.create(input, checkoutAttempt.current.key);
+    checkoutAttempt.current = null;
+    sessionStorage.setItem('f2h:checkoutResult', JSON.stringify(placed.map((value) => value.id)));
+    setState((current) => ({
+      ...current,
+      orders: merge(placed.map(orderView), current.orders),
+      cart: [],
+    }));
+    await syncAfterWrite();
     return placed;
-  };
-  const changeStatus = (id, status) => {
-    const order = orders.find((o) => o.id === id);
-    if (!order) return;
-    const isFarmer = user?.role === 'farmer' && user.id === order.farmerId,
-      isCustomer = user?.role === 'customer' && user.id === order.customerId;
-    const next = seed.orderSteps(order.fulfillment)[
-      seed.orderSteps(order.fulfillment).indexOf(order.status) + 1
-    ];
-    if (
-      !(
-        status === 'Cancelled' &&
-        ['Pending', 'Confirmed'].includes(order.status) &&
-        (isCustomer || isFarmer)
-      ) &&
-      !(isFarmer && !['Cancelled', 'Completed'].includes(order.status) && status === next)
-    )
-      throw new Error('This status change is not allowed.');
-    setOrders((old) => old.map((o) => (o.id === id ? { ...o, status } : o)));
-    if (status === 'Cancelled')
-      setProducts((old) =>
-        old.map((p) => {
-          const item = order.items.find((i) => i.productId === p.id);
-          return item
-            ? {
-                ...p,
-                quantity: p.quantity + item.quantity,
-                availability: item.preorder ? 'Upcoming Harvest' : 'Available',
-              }
-            : p;
-        }),
-      );
-    addNotice(
-      isFarmer ? order.customerId : order.farmerId,
-      `Order ${id}: ${status}`,
-      `/${isFarmer ? 'customer' : 'farmer'}/orders/${id}`,
-    );
+  }
+  async function syncAfterWrite() {
+    try {
+      await refresh();
+    } catch (failure) {
+      notify('Your changes were saved. Reload to fetch the latest marketplace data.', 'error');
+    }
+  }
+  async function changeStatus(id, status) {
+    if (user.role === 'customer') await client.orders.cancel(id);
+    else await client.orders.updateStatus(id, status);
+    await syncAfterWrite();
     notify('Order updated.');
-  };
+  }
+  async function saveProduct(product) {
+    const payload = await productPayload(product, client);
+    const result = product.id
+      ? await client.products.update(product.id, payload)
+      : await client.products.create(payload);
+    await syncAfterWrite();
+    return productView(result);
+  }
+  async function removeProduct(id) {
+    await client.products.remove(id);
+    await syncAfterWrite();
+  }
+  async function submitReview(values) {
+    await client.reviews.create(values);
+    await syncAfterWrite();
+  }
+  async function markRead(id) {
+    try {
+      if (id === 'all') await client.notifications.readAll();
+      else await client.notifications.read(id);
+      await refresh();
+    } catch (failure) {
+      notify(failure.message, 'error');
+    }
+  }
+  if (loading)
+    return (
+      <main className="container page" role="status">
+        <span className="spinner" /> Loading marketplace…
+      </main>
+    );
+  if (error)
+    return (
+      <main className="container page">
+        <h1>Unable to load the marketplace</h1>
+        <p role="alert">{error}</p>
+        <button className="btn" onClick={initialize}>
+          Try again
+        </button>
+      </main>
+    );
   return (
     <UIContext.Provider value={{ notify, toast }}>
-      <AuthContext.Provider value={{ user, signIn, logout, updateProfile }}>
+      <AuthContext.Provider value={{ user, signIn, logout, updateProfile, loading }}>
         <ProductContext.Provider
           value={{
-            products,
-            setProducts,
-            farmers,
-            setFarmers,
-            orders,
-            setOrders,
-            reviews,
-            setReviews,
-            placeOrder,
-            changeStatus,
+            ...state,
             recent,
             setRecent,
-            addNotice,
+            saveProduct,
+            removeProduct,
+            submitReview,
+            placeOrder,
+            changeStatus,
+            refresh,
           }}
         >
           <CartContext.Provider
             value={{
-              cart,
+              cart: state.cart,
+              deliveryCharge: state.deliveryCharge,
               addToCart,
               updateQuantity,
-              removeFromCart: (id) => setCart((old) => old.filter((c) => c.productId !== id)),
+              removeFromCart,
             }}
           >
-            <WishlistContext.Provider value={{ wishlist, toggleWish }}>
+            <WishlistContext.Provider value={{ wishlist: state.wishlist, toggleWish }}>
               <NotificationContext.Provider
-                value={{
-                  notifications: notifications.filter((n) => n.userId === user?.id),
-                  markRead: (id) =>
-                    setNotifications((old) =>
-                      old.map((n) =>
-                        (id === 'all' ? n.userId === user?.id : n.id === id)
-                          ? { ...n, read: true }
-                          : n,
-                      ),
-                    ),
-                }}
+                value={{ notifications: state.notifications, markRead }}
               >
                 {children}
                 {toast && (

@@ -1,13 +1,21 @@
 # Farm2Home LK
 
-A React marketplace for Sri Lankan farmers and customers, with an Express/MongoDB backend and a preserved standalone mock frontend.
+A Sri Lankan farmer-to-customer marketplace with a React/Vite frontend and Express/MongoDB backend.
 
-```sh
+Start each application in its own terminal:
+
+```powershell
+cd backend
+npm install
+npm run dev
+```
+
+```powershell
 cd frontend
 npm install
 npm run dev
 ```
 
-See [the frontend README](frontend/README.md) for demo credentials, workflows, architecture, routes, tests and integration notes.
+The frontend uses the real API, with empty states when no records exist. It does not include demo accounts or sample marketplace records. Register your own accounts; backend seeding is optional and never runs automatically. Existing database records are preserved.
 
-See [the backend README](backend/README.md) for API setup, MongoDB replica-set requirements, seed data, authentication, checkout, tests and the external AI price-advisor contract. The existing frontend Context remains mock-based; API adapters and optional advisor API mode support gradual integration.
+See [frontend setup and architecture](frontend/README.md) and [backend configuration, database, API and tests](backend/README.md). Image uploads and the AI price service require their respective backend configuration. Contact/newsletter submission and password recovery are explicitly unavailable until real services are implemented.

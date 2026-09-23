@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Sprout, Handshake, Truck, ArrowRight } from 'lucide-react';
 import { PageHeading, Img, SectionHeading } from '../../components/common/UI';
-import { images } from '../../data/seed';
+import { images } from '../../data/catalog';
 export default function About() {
   return (
     <main className="container page about-page">
@@ -56,13 +56,6 @@ export default function About() {
           ))}
         </div>
       </section>
-      <div className="notice">
-        <strong>A working frontend demonstration</strong>
-        <p>
-          All farmers, customers, orders, reviews, and marketplace prices are fictional. No orders,
-          payments, emails, or AI requests are sent to a backend.
-        </p>
-      </div>
       <Link className="btn" to="/products">
         Meet your next fresh favourite <ArrowRight size={17} />
       </Link>

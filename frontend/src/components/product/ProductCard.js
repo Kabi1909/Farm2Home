@@ -78,6 +78,7 @@ export default function ProductCard({ product: p }) {
   );
 }
 export function ProductGrid({ products }) {
+  if (!products.length) return <p className="notice">No products to show yet.</p>;
   return (
     <div className="product-grid">
       {products.map((p) => (

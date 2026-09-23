@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Search, MapPin } from 'lucide-react';
-import { districts } from '../../data/seed';
+import { districts } from '../../data/catalog';
 
 export default function HeroContent() {
   const [search, setSearch] = useState('');

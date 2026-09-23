@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useAuth, useUI } from '../context/AppContext';
-import { districts, towns, methods } from '../data/seed';
+import { districts, towns, methods } from '../data/catalog';
 import { Field, Select, Checkbox, PageHeading, Img, Modal } from '../components/common/UI';
 import ImageUploader from '../components/forms/ImageUploader';
 import { validPhone } from '../utils/helpers';
-import { accounts, updateAccount } from '../services/authService';
+import { marketplaceApi } from '../services/marketplaceApi';
 export default function Profile() {
   const { user, updateProfile } = useAuth();
   const { notify } = useUI();
@@ -15,6 +15,7 @@ export default function Profile() {
     }),
     [editing, setEditing] = useState(false),
     [error, setError] = useState(''),
+    [busy, setBusy] = useState(false),
     [password, setPassword] = useState(null);
   const farmer = user.role === 'farmer';
   const set = (k, v) =>
@@ -25,7 +26,7 @@ export default function Profile() {
       type={type}
       min={type === 'number' ? 0 : undefined}
       required={required}
-      disabled={!editing}
+      disabled={!editing || k === 'email'}
       value={form[k] || ''}
       onChange={(e) => set(k, e.target.value)}
     />
@@ -45,17 +46,20 @@ export default function Profile() {
       />
       <form
         className="panel profile-form"
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
           if (!validPhone(form.phone)) return setError('Enter a valid Sri Lankan phone number.');
-          if (
-            accounts().some(
-              (a) => a.id !== user.id && a.email.toLowerCase() === form.email.toLowerCase(),
-            )
-          )
-            return setError('This email is already used by another account.');
-          updateProfile(form);
-          setEditing(false);
+          if (busy) return;
+          setBusy(true);
+          try {
+            await updateProfile(form);
+            setEditing(false);
+          } catch (failure) {
+            setError(failure.message);
+            return;
+          } finally {
+            setBusy(false);
+          }
           setError('');
         }}
       >
@@ -139,7 +143,9 @@ export default function Profile() {
         )}
         {editing && (
           <div className="actions">
-            <button className="btn">Save changes</button>
+            <button className="btn" disabled={busy}>
+              {busy ? 'Saving…' : 'Save changes'}
+            </button>
             <button
               type="button"
               className="btn secondary"
@@ -168,14 +174,21 @@ export default function Profile() {
       {password && (
         <Modal title="Change your password" onClose={() => setPassword(null)}>
           <form
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              if (accounts().find((a) => a.id === user.id)?.password !== password.current)
-                return setPassword({ ...password, error: 'Current password is incorrect.' });
               if (password.next !== password.confirm)
                 return setPassword({ ...password, error: 'Passwords do not match.' });
-              updateAccount(user.id, { password: password.next });
-              setPassword(null);
+              try {
+                await marketplaceApi.auth.changePassword(
+                  password.current,
+                  password.next,
+                  password.confirm,
+                );
+                setPassword(null);
+              } catch (failure) {
+                setPassword({ ...password, error: failure.message });
+                return;
+              }
               notify('Password updated.');
             }}
           >
@@ -188,7 +201,7 @@ export default function Profile() {
                 key={key}
                 label={label}
                 type="password"
-                minLength={key === 'current' ? 1 : 8}
+                minLength={key === 'current' ? 1 : 10}
                 required
                 value={password[key]}
                 onChange={(e) => setPassword({ ...password, [key]: e.target.value })}

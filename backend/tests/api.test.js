@@ -18,6 +18,16 @@ import Review from "../models/Review.js";
 import { seedData } from "../seeds/seedData.js";
 import { recordMarketPrices } from "../services/priceHistoryService.js";
 import { processCleanup } from "../services/cloudinaryService.js";
+import axios from "axios";
+import { createMarketplaceApi } from "../../frontend/src/services/marketplaceApi.js";
+import {
+  allPages,
+  productView,
+  productPayload,
+  userView,
+  orderView,
+  reviewView,
+} from "../../frontend/src/services/adapters.js";
 
 let database;
 let upstream;
@@ -661,4 +671,145 @@ test("logout revokes existing tokens without exposing secrets", async () => {
     .send("{");
   assert.equal(malformed.status, 400);
   assert.equal(malformed.body.stack, undefined);
+});
+
+test("frontend API adapters complete an authenticated marketplace flow without browser fixtures", async () => {
+  const server = createServer(app).listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const tokens = new Map();
+  const client = axios.create({
+    baseURL: `http://127.0.0.1:${server.address().port}/api`,
+  });
+  client.interceptors.request.use((request) => {
+    const token = tokens.get("f2h:token");
+    if (token) request.headers.Authorization = `Bearer ${token}`;
+    return request;
+  });
+  const frontend = createMarketplaceApi(client, {
+    setItem: (key, value) => tokens.set(key, value),
+    removeItem: (key) => tokens.delete(key),
+  });
+  try {
+    for (const role of ["farmer", "customer"]) {
+      await frontend.auth.register({
+        name: `Adapter ${role}`,
+        email: `adapter-${role}@example.test`,
+        phone: "0771234567",
+        password,
+        confirmPassword: password,
+        role,
+      });
+    }
+    const grower = await frontend.auth.login(
+      "adapter-farmer@example.test",
+      password,
+    );
+    await frontend.farmer.updateProfile({
+      farmName: "Adapter farm",
+      district: "Vavuniya",
+      city: "Vavuniya",
+    });
+    assert.equal(
+      userView(grower, await frontend.farmer.profile()).farm,
+      "Adapter farm",
+    );
+    const listing = productView(
+      await frontend.products.create(
+        await productPayload(
+          {
+            name: "Adapter harvest",
+            category: "Vegetables",
+            description: "Produce for an isolated integration test.",
+            method: "Organic",
+            quality: "Grade A",
+            harvestDate: "2026-01-01",
+            availableDate: "2026-01-02",
+            quantity: 50,
+            unit: "kg",
+            price: 350,
+            bulkPrice: 310,
+            bulkThreshold: 20,
+            district: "Vavuniya",
+            city: "Vavuniya",
+            delivery: true,
+            pickup: true,
+            enabled: true,
+            availability: "Available",
+            images: [],
+          },
+          frontend,
+        ),
+      ),
+    );
+    assert.equal(listing.farmerId, grower.id);
+    const buyer = await frontend.auth.login(
+      "adapter-customer@example.test",
+      password,
+    );
+    assert.deepEqual((await frontend.cart.get()).items, []);
+    await frontend.cart.add(listing.id, 20);
+    const basket = await frontend.cart.get();
+    assert.equal(basket.items[0].unitPrice, 310);
+    assert.equal(basket.deliveryCharge, config.DELIVERY_CHARGE);
+    assert.equal(basket.items[0].product.pickupAvailable, true);
+    await frontend.wishlist.add(listing.id);
+    assert.equal((await frontend.wishlist.get())[0].id, listing.id);
+    const [placed] = await frontend.orders.create(
+      pickup,
+      "frontend-adapter-checkout",
+    );
+    const order = orderView(placed);
+    assert.equal(order.customerId, buyer.id);
+    assert.equal(order.subtotal, 6200);
+    assert.deepEqual((await frontend.cart.get()).items, []);
+    await frontend.auth.login("adapter-farmer@example.test", password);
+    for (const status of [
+      "Confirmed",
+      "Preparing",
+      "Ready for Pickup",
+      "Completed",
+    ])
+      await frontend.orders.updateStatus(order.id, status);
+    await frontend.auth.login("adapter-customer@example.test", password);
+    await frontend.reviews.create({
+      orderId: order.id,
+      productId: listing.id,
+      rating: 5,
+      comment: "Fresh produce and a smooth collection.",
+    });
+    const ownReviews = (await allPages(frontend.reviews.mine)).map(reviewView);
+    assert.equal(ownReviews.length, 1);
+    assert.equal(ownReviews[0].customerId, buyer.id);
+    assert.equal(ownReviews[0].orderId, order.id);
+    const publicReview = (await allPages(frontend.reviews.list)).find(
+      (value) => value.id === ownReviews[0].id,
+    );
+    assert.equal(publicReview.order, undefined);
+    assert.equal(publicReview.customer, undefined);
+    assert.equal(publicReview.customerName, buyer.name);
+    const oldToken = tokens.get("f2h:token");
+    await assert.rejects(
+      frontend.auth.changePassword(
+        "incorrect",
+        "UpdatedPassword123!",
+        "UpdatedPassword123!",
+      ),
+    );
+    await frontend.auth.changePassword(
+      password,
+      "UpdatedPassword123!",
+      "UpdatedPassword123!",
+    );
+    assert.notEqual(tokens.get("f2h:token"), oldToken);
+    assert.equal((await frontend.auth.me()).id, buyer.id);
+    assert.equal(
+      (await api.get("/api/auth/me").set("Authorization", `Bearer ${oldToken}`))
+        .status,
+      401,
+    );
+    await frontend.auth.logout();
+    assert.equal(tokens.size, 0);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
 });
