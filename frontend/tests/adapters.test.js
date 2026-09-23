@@ -63,6 +63,8 @@ test('order and review mappings use actual server snapshots and ownership IDs', 
     ],
   });
   assert.equal(order.items[0].price, 310);
+  assert.equal(order.displayName, 'Harvest');
+  assert.equal(order.id, 'order-id');
   assert.equal(order.customerId, 'customer-id');
   assert.equal(order.deliveryFee, 175);
   assert.equal(order.estimatedDate, 'To be confirmed by the farmer');
