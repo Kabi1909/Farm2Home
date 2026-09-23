@@ -124,7 +124,7 @@ export default function Orders() {
               <div className="between">
                 <div>
                   <Link to={'/' + user.role + '/orders/' + o.id}>
-                    <h3>{o.id}</h3>
+                    <h3>{farmer ? o.displayName : o.id}</h3>
                   </Link>
                   <p>
                     {o.date} ·{' '}
