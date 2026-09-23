@@ -61,9 +61,14 @@ export function userView(user, profile) {
   };
 }
 export function orderView(value) {
+  const productNames = [...new Set(value.items.map((item) => item.productName).filter(Boolean))];
+  const displayName = productNames.length
+    ? productNames[0] + (productNames.length > 1 ? ` + ${productNames.length - 1} more` : '')
+    : 'Farm order';
   return {
     ...value,
     id: recordId(value),
+    displayName,
     customerId: recordId(value.customer),
     farmerId: recordId(value.farmer),
     customer: value.deliveryAddress?.recipientName || value.customer?.name || 'Customer',
