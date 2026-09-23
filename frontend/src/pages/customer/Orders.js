@@ -191,7 +191,7 @@ export function OrderDetails() {
     <>
       <PageHeading
         eyebrow="EVERY STEP, A LITTLE CLOSER"
-        title={'Order ' + order.id}
+        title={user.role === 'farmer' ? order.displayName : 'Order ' + order.id}
         description={`Placed ${order.date} · ${order.fulfillment === 'pickup' ? 'Farm pickup' : 'Home delivery'}`}
         action={<StockBadge status={order.status} />}
       />
