@@ -59,7 +59,7 @@ export function OrderActions({ order }) {
       {confirm && (
         <ConfirmDialog
           title={confirm === 'Cancelled' ? 'Cancel this order?' : 'Update order status?'}
-          description={`Order ${order.id} will be marked ${confirm.toLowerCase()}.${confirm === 'Cancelled' ? ' Reserved stock will be restored.' : ''}`}
+          description={`${user.role === 'farmer' ? order.displayName : 'Order ' + order.id} will be marked ${confirm.toLowerCase()}.${confirm === 'Cancelled' ? ' Reserved stock will be restored.' : ''}`}
           onConfirm={async () => {
             try {
               await changeStatus(order.id, confirm);
