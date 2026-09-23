@@ -21,6 +21,7 @@ import { processCleanup } from "../services/cloudinaryService.js";
 import { cloudAdapter } from "../services/cloudinaryService.js";
 import axios from "axios";
 import { createMarketplaceApi } from "../../frontend/src/services/marketplaceApi.js";
+import { registrationPayload } from "../../frontend/src/utils/registration.js";
 import {
   allPages,
   productView,
@@ -216,6 +217,42 @@ test("registration, authentication and role enforcement", async () => {
   );
   assert.equal((await api.get("/api/unknown")).status, 404);
   assert.equal((await api.get("/api/health")).status, 200);
+});
+
+test("customer signup accepts formatted frontend phones and explains rejected passwords", async () => {
+  const payload = registrationPayload({
+    name: " Signup Customer ",
+    email: " SIGNUP-CUSTOMER@example.test ",
+    phone: "+94 77-123-4567",
+    role: "customer",
+    password,
+    confirm: password,
+  });
+  const invalid = await api.post("/api/auth/register").send({
+    ...payload,
+    password: "lowercase123!",
+    confirmPassword: "lowercase123!",
+  });
+  assert.equal(invalid.status, 400);
+  assert.ok(
+    invalid.body.errors.some(
+      (issue) =>
+        issue.field === "password" && issue.message.includes("uppercase"),
+    ),
+  );
+  assert.equal(await User.countDocuments({ email: payload.email }), 0);
+  const account = bodyOf(
+    await api.post("/api/auth/register").send(payload),
+    201,
+  );
+  assert.equal(account.user.phone, "+94771234567");
+  assert.equal(account.user.role, "customer");
+  bodyOf(
+    await api.post("/api/auth/login").send({ email: payload.email, password }),
+  );
+  bodyOf(await api.get("/api/customer/profile").set(auth(account)));
+  bodyOf(await api.get("/api/cart").set(auth(account)));
+  bodyOf(await api.get("/api/wishlist").set(auth(account)));
 });
 
 test("products protect ownership, uploaded assets, coordinates and derived fields", async () => {

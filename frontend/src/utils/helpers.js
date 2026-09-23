@@ -4,7 +4,7 @@ export const unitPrice = (product, quantity) =>
   product.bulkPrice > 0 && product.bulkThreshold > 0 && quantity >= product.bulkThreshold
     ? Number(product.bulkPrice)
     : Number(product.price);
-export const validPhone = (value) => /^(?:\+94|0)\d{9}$/.test(String(value).replace(/[\s-]/g, ''));
+export const validPhone = (value) => /^(?:\+94|0)7\d{8}$/.test(String(value).replace(/[\s-]/g, ''));
 export const filterProducts = (products, query, farmers = []) =>
   products
     .filter((p) => {

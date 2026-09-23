@@ -4,6 +4,7 @@ import { Sprout, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useAuth, useUI } from '../../context/AppContext';
 import * as auth from '../../services/authService';
 import { validPhone } from '../../utils/helpers';
+import { passwordError, authErrorMessage } from '../../utils/registration.js';
 import { Field } from '../../components/common/UI';
 import { images } from '../../data/catalog';
 export default function Auth({ mode = 'login' }) {
@@ -30,10 +31,13 @@ export default function Auth({ mode = 'login' }) {
   async function submit(e) {
     e.preventDefault();
     setError('');
+    if (registering && !form.name.trim()) return setError('Enter your full name.');
     if (registering && !validPhone(form.phone))
       return setError('Enter a valid Sri Lankan phone number, such as 0771234567.');
     if ((registering || reset) && form.password !== form.confirm)
       return setError('Passwords do not match.');
+    if ((registering || reset) && passwordError(form.password))
+      return setError(passwordError(form.password));
     setLoading(true);
     try {
       const account = registering
@@ -49,7 +53,7 @@ export default function Auth({ mode = 'login' }) {
         navigate(from?.startsWith('/' + account.role) ? from : `/${account.role}/dashboard`);
       }
     } catch (err) {
-      setError(err.message);
+      setError(authErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -121,6 +125,7 @@ export default function Auth({ mode = 'login' }) {
                 <Field
                   label="Full name"
                   required
+                  maxLength={120}
                   value={form.name}
                   onChange={(e) => set('name', e.target.value)}
                 />
@@ -130,6 +135,7 @@ export default function Auth({ mode = 'login' }) {
               label="Email address"
               type="email"
               required
+              maxLength={254}
               value={form.email}
               onChange={(e) => set('email', e.target.value)}
               autoComplete="email"
@@ -150,6 +156,7 @@ export default function Auth({ mode = 'login' }) {
                   <input
                     required
                     minLength={registering || reset ? 10 : 1}
+                    maxLength={72}
                     type={show ? 'text' : 'password'}
                     value={form.password}
                     onChange={(e) => set('password', e.target.value)}
@@ -171,11 +178,9 @@ export default function Auth({ mode = 'login' }) {
                   <span style={{ width: `${Math.min(100, form.password.length * 8)}%` }} />
                 </div>
                 <small>
-                  {form.password.length < 10
-                    ? 'Use at least 10 characters, including uppercase, lowercase, a number and a symbol'
-                    : /[0-9]/.test(form.password) && /[^a-zA-Z0-9]/.test(form.password)
-                      ? 'Strong password'
-                      : 'Add a number and symbol for a stronger password'}
+                  {form.password
+                    ? passwordError(form.password) || 'Password meets all requirements.'
+                    : 'Use 10–72 characters, including uppercase, lowercase, a number and a symbol.'}
                 </small>
                 <Field
                   label="Confirm password"

@@ -32,12 +32,12 @@ export const registration = z
     phone,
     password: z
       .string()
-      .min(10)
-      .max(72)
-      .regex(/[a-z]/)
-      .regex(/[A-Z]/)
-      .regex(/\d/)
-      .regex(/[^a-zA-Z0-9]/)
+      .min(10, "Use at least 10 characters for your password.")
+      .max(72, "Use no more than 72 characters for your password.")
+      .regex(/[a-z]/, "Include a lowercase letter in your password.")
+      .regex(/[A-Z]/, "Include an uppercase letter in your password.")
+      .regex(/\d/, "Include a number in your password.")
+      .regex(/[^a-zA-Z0-9]/, "Include a symbol in your password.")
       .refine(
         (value) => Buffer.byteLength(value, "utf8") <= 72,
         "Password must fit within 72 UTF-8 bytes.",
