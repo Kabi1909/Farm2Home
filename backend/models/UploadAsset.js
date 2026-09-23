@@ -10,6 +10,7 @@ export default mongoose.model(
       product: ref("Product", false),
       kind: { type: String, enum: ["product", "profile"] },
       cleanupPending: { type: Boolean, default: false },
+      uploadPending: { type: Boolean, default: false },
     },
     options,
   ),

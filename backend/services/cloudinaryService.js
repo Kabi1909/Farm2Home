@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import mongoose from "mongoose";
 import { configuredCloudinary } from "../config/cloudinary.js";
 import UploadAsset from "../models/UploadAsset.js";
 import User from "../models/User.js";
@@ -33,27 +34,39 @@ export function cloudAdapter(config) {
       }),
     remove: async (publicId) => {
       if (!cloud) throw unavailable();
-      await cloud.uploader.destroy(publicId, {
+      const result = await cloud.uploader.destroy(publicId, {
         resource_type: "image",
         invalidate: true,
         timeout: 10000,
       });
+      if (!["ok", "not found"].includes(result.result)) throw unavailable();
     },
   };
 }
 export async function processCleanup(adapter) {
-  const assets = await UploadAsset.find({
+  const eligible = {
     $or: [
-      { cleanupPending: true },
+      { cleanupPending: true, uploadPending: false },
+      {
+        uploadPending: true,
+        createdAt: { $lt: new Date(Date.now() - 3600000) },
+      },
       {
         kind: "product",
         product: null,
         createdAt: { $lt: new Date(Date.now() - 86400000) },
       },
     ],
-  }).limit(25);
+  };
+  const assets = await UploadAsset.find(eligible).limit(25);
   for (const asset of assets) {
     try {
+      // Claim before deleting remotely; a product cannot bind a claimed asset.
+      const claimed = await UploadAsset.findOneAndUpdate(
+        { _id: asset._id, ...eligible },
+        { $set: { cleanupPending: true } },
+      );
+      if (!claimed) continue;
       await adapter.remove(asset.publicId);
       await asset.deleteOne();
     } catch {
@@ -75,39 +88,54 @@ export async function uploadImages(req, res) {
   const created = [];
   try {
     for (const file of req.files) {
-      const image = await adapter.upload(
-        file.buffer,
-        `farm2home/${req.user.id}/${randomUUID()}`,
-      );
+      // Persist the intended public ID before network IO so failures stay retryable.
       const asset = await UploadAsset.create({
-        ...image,
+        publicId: `farm2home/${req.user.id}/${randomUUID()}`,
         owner: req.user._id,
         kind,
+        uploadPending: true,
       });
       created.push(asset);
+      const image = await adapter.upload(file.buffer, asset.publicId);
+      if (
+        image.publicId !== asset.publicId ||
+        !image.url.startsWith("https://")
+      )
+        throw unavailable();
+      asset.url = image.url;
+      await asset.save();
     }
-    if (kind === "profile") {
-      const old = await User.findOneAndUpdate(
-        { _id: req.user._id },
-        {
-          $set: {
-            profileImage: {
-              url: created[0].url,
-              publicId: created[0].publicId,
+    await mongoose.connection.transaction(async (session) => {
+      await UploadAsset.updateMany(
+        { _id: { $in: created.map((asset) => asset._id) } },
+        { $set: { uploadPending: false } },
+        { session },
+      );
+      if (kind === "profile") {
+        const old = await User.findOneAndUpdate(
+          { _id: req.user._id },
+          {
+            $set: {
+              profileImage: {
+                url: created[0].url,
+                publicId: created[0].publicId,
+              },
             },
           },
-        },
-      );
-      if (old.profileImage?.publicId)
-        await UploadAsset.updateOne(
-          { publicId: old.profileImage.publicId, owner: req.user._id },
-          { $set: { cleanupPending: true } },
+          { session },
         );
-    }
+        if (old.profileImage?.publicId)
+          await UploadAsset.updateOne(
+            { publicId: old.profileImage.publicId, owner: req.user._id },
+            { $set: { cleanupPending: true } },
+            { session },
+          );
+      }
+    });
   } catch (error) {
     await UploadAsset.updateMany(
       { _id: { $in: created.map((asset) => asset._id) } },
-      { $set: { cleanupPending: true } },
+      { $set: { cleanupPending: true, uploadPending: false } },
     );
     throw unavailable();
   }

@@ -129,6 +129,7 @@ export async function write(req, res) {
       owner: req.user._id,
       kind: "product",
       cleanupPending: false,
+      uploadPending: false,
       $or: [{ product: null }, { product: product._id }],
     }).session(session);
     if (assets.length !== ids.length)
