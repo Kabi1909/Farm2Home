@@ -46,6 +46,8 @@ The existing green layouts, decorative agricultural artwork and categories are r
 
 ## Verification
 
+Farmer order cards, recent orders, details headings and status confirmations use product names saved with the order. Multiple products appear as the first product name plus the number of additional distinct products. Orders without a saved product name display “Farm order”. The full order reference remains available in order details; links, ownership checks and status updates continue using the original database ID. Existing orders need no migration.
+
 ```powershell
 npm test
 npm run build
