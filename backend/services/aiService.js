@@ -3,6 +3,7 @@ import { z } from "zod";
 import ApiError from "../utils/ApiError.js";
 import { currentPrices } from "./priceHistoryService.js";
 import { escapeRegex } from "../utils/pagination.js";
+import { marketplacePrediction } from "./marketplacePriceModel.js";
 
 const price = z.number().finite().positive().max(10000000);
 const predictionSchema = z
@@ -24,26 +25,30 @@ export const unavailableMessage =
 
 export async function suggestPrice(input, config) {
   let prediction;
-  try {
-    const endpoint = new URL(
-      "predict-price",
-      `${config.AI_SERVICE_URL.replace(/\/$/, "")}/`,
-    );
-    const response = await axios.post(endpoint.href, input, {
-      timeout: config.AI_SERVICE_TIMEOUT_MS,
-      maxRedirects: 0,
-      maxContentLength: 16384,
-      maxBodyLength: 16384,
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-    });
-    prediction = predictionSchema.parse(response.data);
-  } catch {
-    const error = new ApiError(503, unavailableMessage);
-    error.publicMessage = unavailableMessage;
-    throw error;
+  if ((config.AI_PRICE_PROVIDER || "marketplace") === "marketplace") {
+    prediction = await marketplacePrediction(input);
+  } else {
+    try {
+      const endpoint = new URL(
+        "predict-price",
+        `${config.AI_SERVICE_URL.replace(/\/$/, "")}/`,
+      );
+      const response = await axios.post(endpoint.href, input, {
+        timeout: config.AI_SERVICE_TIMEOUT_MS,
+        maxRedirects: 0,
+        maxContentLength: 16384,
+        maxBodyLength: 16384,
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      });
+      prediction = predictionSchema.parse(response.data);
+    } catch {
+      const error = new ApiError(503, unavailableMessage);
+      error.publicMessage = unavailableMessage;
+      throw error;
+    }
   }
 
   const [comparison] = await currentPrices({
@@ -57,12 +62,14 @@ export async function suggestPrice(input, config) {
     currency: "LKR",
     unit: input.unit,
     generatedAt: new Date(),
-    source: "External price prediction service",
+    source: prediction.source || "External price prediction service",
     marketComparison: comparison || null,
     advisory:
       "An estimate, not a guaranteed selling price. Review local demand and costs before applying it.",
-    marketNote: comparison
-      ? `Based on ${comparison.sampleCount} matching Farm2Home listing(s); these are asking prices, not completed sales.`
-      : "No matching local listings are available for comparison.",
+    marketNote:
+      prediction.marketNote ||
+      (comparison
+        ? `Based on ${comparison.sampleCount} matching Farm2Home listing(s); these are asking prices, not completed sales.`
+        : "No matching local listings are available for comparison."),
   };
 }

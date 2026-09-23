@@ -40,6 +40,7 @@ const config = {
   JWT_SECRET: "isolated-test-secret-not-for-production-12345",
   JWT_EXPIRES_IN: "1h",
   AI_SERVICE_TIMEOUT_MS: 150,
+  AI_PRICE_PROVIDER: "external",
   DELIVERY_CHARGE: 250,
   LOW_STOCK_THRESHOLD: 5,
 };
@@ -607,6 +608,43 @@ test("AI proxy sanitizes responses and fails safely for invalid, redirected and 
   }
   await product(farmer, { price: 410 });
   predictionMode = "valid";
+});
+
+test("built-in price advisor uses MongoDB listings without the external service", async () => {
+  const previousProvider = config.AI_PRICE_PROVIDER;
+  config.AI_PRICE_PROVIDER = "marketplace";
+  predictionMode = "timeout";
+  const input = {
+    product: "Model Tomatoes",
+    category: "Vegetables",
+    district: "Vavuniya",
+    quality: "Grade A",
+    quantity: 50,
+    unit: "kg",
+    harvestDate: "2026-09-23",
+    month: 9,
+  };
+  try {
+    const noData = await api
+      .post("/api/ai/price-suggestion")
+      .set(auth(farmer))
+      .send(input);
+    assert.equal(noData.status, 422);
+    assert.match(noData.body.message, /No comparable/);
+    await product(farmer, { name: "Model Tomatoes", price: 350 });
+    const prediction = bodyOf(
+      await api.post("/api/ai/price-suggestion").set(auth(farmer)).send(input),
+    );
+    assert.equal(prediction.recommendedPrice, 350);
+    assert.equal(prediction.confidence, "Low");
+    assert.match(prediction.source, /marketplace regression/);
+    assert.equal(prediction.model.sampleCount, 1);
+    assert.equal(prediction.currency, "LKR");
+    assert.equal(prediction.unit, "kg");
+  } finally {
+    config.AI_PRICE_PROVIDER = previousProvider;
+    predictionMode = "valid";
+  }
 });
 
 test("image signatures, asset ownership and cleanup retry are enforced", async () => {

@@ -1,6 +1,6 @@
 # External AI service contract
 
-The Python model is deliberately not implemented in this backend task. Express calls the configured service's `POST /predict-price` endpoint. See backend documentation for request/response validation and failure isolation.
+The application defaults to its built-in JavaScript marketplace regression model. This contract is only for an optional separately hosted model: set AI_PRICE_PROVIDER=external and configure AI_SERVICE_URL. Express then calls that service's POST /predict-price endpoint. No external model implementation is bundled; see backend documentation for validation and failure isolation.
 
 Request (JSON):
 

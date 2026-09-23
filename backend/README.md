@@ -1,6 +1,6 @@
 # Farm2Home LK API
 
-Express 5 + Mongoose backend for the existing React marketplace. All application code is JavaScript. Authentication, profiles, products, uploads, carts, multi-farmer orders, reviews, notifications, analytics and price history are implemented here. The AI model remains an external service; no Python/model implementation is included.
+Express 5 + Mongoose backend for the existing React marketplace. All application code is JavaScript. Authentication, profiles, products, uploads, carts, multi-farmer orders, reviews, notifications, analytics and price history are implemented here. The price advisor includes a JavaScript nearest-neighbours regression model based on actual marketplace listings. A separately hosted prediction model remains optional.
 
 ## Run locally
 
@@ -33,7 +33,7 @@ npm run dev
 
 For an existing local MongoDB installation, start `mongod` with `--replSet rs0 --bind_ip 127.0.0.1 --dbpath <your-development-db-directory>`, then run `rs.initiate()` once in `mongosh`. The example URI uses `replicaSet=rs0`. Do not point tests or seeds at production.
 
-`GET http://localhost:5000/api/health` returns 200 when MongoDB is connected and 503 otherwise. The API starts without Cloudinary or the AI service. In development, empty Cloudinary credentials enable persistent local image storage; the AI endpoint remains unavailable until its service is configured. Those external credentials/services are not bundled.
+`GET http://localhost:5000/api/health` returns 200 when MongoDB is connected and 503 otherwise. The API starts without Cloudinary or the AI service. In development, empty Cloudinary credentials enable persistent local image storage; the built-in price advisor uses real comparable listings without an external service. Those external credentials/services are not bundled.
 
 `DEV_LOCAL_DB=true` enables the managed local database only for `npm run dev` in development mode. `npm start` always requires an already running database and never generates configuration.
 
@@ -48,6 +48,7 @@ For an existing local MongoDB installation, start `mongod` with `--replSet rs0 -
 | `JWT_EXPIRES_IN`                                                       | Duration such as `7d` or `1h`                                         |
 | `FRONTEND_URL`                                                         | Exact allowed browser origin, default `http://localhost:5173`         |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Server-side image service credentials                                 |
+| `AI_PRICE_PROVIDER`                                                    | `marketplace` (default) or `external`                                 |
 | `AI_SERVICE_URL`                                                       | External prediction service base URL, default `http://localhost:8000` |
 | `AI_SERVICE_TIMEOUT_MS`                                                | Prediction timeout, default 5000; maximum 30000                       |
 | `DELIVERY_CHARGE`                                                      | LKR fee **per farmer order**, default 250                             |
@@ -100,7 +101,7 @@ Success responses contain `{ success: true, data, message? }`. Lists additionall
 | PUT               | `/notifications/:id/read`, `/notifications/read-all` | Mark owned notifications read                            |
 | GET               | `/farmer/analytics`                                  | Farmer's own sales metrics; rejects a supplied farmer ID |
 | GET               | `/prices/recent`, `/prices/trends`                   | Farm2Home listing prices and daily snapshots             |
-| POST              | `/ai/price-suggestion`                               | Farmer-only external prediction proxy                    |
+| POST              | `/ai/price-suggestion`                               | Farmer-only price advisor                                |
 
 Registration fields: `name`, `email`, `phone`, `password`, `confirmPassword`, `role`. Passwords require 10–72 characters, upper/lowercase, a number and a symbol, and at most 72 UTF-8 bytes. Phones accept `0771234567` or `+94771234567`. Login accepts only email/password. Passwords are bcrypt-hashed; tokens use HS256, issuer/audience checks and server-side token versions. Disabled users are denied. Password reset/email verification are not implemented API flows.
 
@@ -167,9 +168,15 @@ Prices are **Farm2Home asking prices**, not official Sri Lankan prices or comple
 
 ## AI advisor
 
-See [the external service contract](../ai-service/README.md). The API posts validated product/category/district/quality/quantity/unit/harvestDate/month fields to the configured `/predict-price` endpoint. It accepts only finite positive prices in an ordered range and Low/Medium/High confidence. Unknown response fields are discarded. Redirects are disabled and response size is bounded. The result adds LKR/unit, timestamp, matching marketplace listings and source notes.
+AI_PRICE_PROVIDER defaults to marketplace. Restart the backend after updating code or environment configuration. No separate Python service, model download or API key is needed in this mode.
 
-Timeouts, malformed predictions and upstream errors return 503 with: “Price suggestion is temporarily unavailable. You can still enter your own price.” Predictions never update a product automatically. The external model's quality/calibration cannot be verified until a real model service is provided.
+The built-in JavaScript model performs weighted k-nearest-neighbours regression on active, priced listings for the same normalized product, category and unit. It considers district, quality, harvest month, quantity and listing age, taking at most seven neighbours from distinct farmers. Name normalization supports common plural forms while preserving varieties such as cherry tomatoes and red onions. It inspects up to 1,000 recent candidates per request. New listings are available to the model on the next request; no manual retraining is needed.
+
+The model targets asking prices, not completed-sale prices or official market prices. Its fixed feature weights have not been calibrated against an independent dataset. Low/Medium confidence describes reference-data coverage, not measured prediction accuracy; it never claims High confidence. The displayed range is the observed reference-price range, not a statistical prediction interval. A single comparable listing gives that listing's price with Low confidence.
+
+**An empty database cannot provide a grounded price prediction.** Publish the first listing using a manually researched price via Enter Price Manually, then the advisor can use it as a reference for comparable listings. New product types or units without references return an actionable 422 response instead of a fabricated price. No example prices or synthetic training rows are inserted into the application database.
+
+To use your own trained service instead, set AI_PRICE_PROVIDER=external and AI_SERVICE_URL to its base URL. See [the external service contract](../ai-service/README.md). This mode posts validated product/category/district/quality/quantity/unit/harvestDate/month fields to /predict-price. It validates positive ordered prices and confidence, rejects redirects and oversized responses, and returns 503 on service failure. It never silently changes providers. Predictions only change the form's price when the farmer clicks Use; they never publish a listing automatically.
 
 ## Frontend integration boundary
 
@@ -177,7 +184,7 @@ The React frontend now loads marketplace and account state from these APIs. Conf
 
 The frontend adapters map IDs, image assets, bulk thresholds, availability and order snapshots into the existing views. Cart updates use server cart-item IDs and totals. The API now exposes public GET /reviews, authenticated customer GET /reviews/my, and authenticated PUT /auth/password with currentPassword, password and confirmPassword. Changing a password revokes previous tokens and returns a new token for the current session.
 
-Image uploads use persistent MongoDB storage during local development when all Cloudinary credentials are empty. Cloudinary is used when configured and is required for production. AI suggestions require the configured external price service; unavailability remains an explicit error and manual pricing is supported. Contact messages, newsletters and forgotten-password recovery are not implemented and cannot report a successful submission in the frontend.
+Image uploads use persistent MongoDB storage during local development when all Cloudinary credentials are empty. Cloudinary is used when configured and is required for production. AI suggestions use the built-in marketplace model by default; the optional external provider requires a configured prediction service. Manual pricing is always supported. Contact messages, newsletters and forgotten-password recovery are not implemented and cannot report a successful submission in the frontend.
 
 Frontend integration tests in the backend test suite import the frontend API adapters, so install dependencies in both backend and frontend before running the complete suite. Test databases are isolated and do not modify local application records.
 
@@ -202,11 +209,11 @@ npm run format:check
 
 Integration tests exercise hashing/login/logout, role and ownership failures, multi-farmer checkout, bulk prices, stock contention, rollback, cancellation, reviews, notifications, analytics, prices and upload cleanup. A local HTTP fixture tests the external prediction contract including timeout/invalid/redirect failures; it is not a trained AI model. Cloudinary tests use an injected adapter and do not prove live credentials or remote image delivery.
 
-Deployment limits: rate-limit state and product-view deduplication are in-process, so use a shared store for multiple API replicas. Restrict trusted proxy configuration to the actual deployment network rather than enabling arbitrary forwarded IPs. Configure HTTPS at the edge. MongoDB indexes, backups, actual Cloudinary credentials, and an external AI service remain deployment setup work.
+Deployment limits: rate-limit state and product-view deduplication are in-process, so use a shared store for multiple API replicas. Restrict trusted proxy configuration to the actual deployment network rather than enabling arbitrary forwarded IPs. Configure HTTPS at the edge. MongoDB indexes, backups, actual Cloudinary credentials, and (if selected) an external AI service remain deployment setup work.
 
 ### Verification recorded on 2026-09-23
 
-- Backend: 22 tests passed, including real MongoDB replica-set transactions and a local HTTP prediction-service fixture.
+- Backend: 32 tests passed, including real MongoDB replica-set transactions and a local HTTP prediction-service fixture.
 - Frontend: all 17 existing tests passed; production Vite build passed. Vite reports the existing large lazy-loaded 3D hero chunk.
 - Backend formatting check and Git whitespace checks passed.
 - Live Cloudinary credentials, a trained external model and a deployed database were not supplied or exercised.

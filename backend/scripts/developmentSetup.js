@@ -25,6 +25,7 @@ export async function prepareDevelopmentEnv(directory = backendDirectory) {
     "JWT_EXPIRES_IN=7d",
     "FRONTEND_URL=http://localhost:5173",
     "AI_SERVICE_URL=http://localhost:8000",
+    "AI_PRICE_PROVIDER=marketplace",
     "AI_SERVICE_TIMEOUT_MS=5000",
     "DELIVERY_CHARGE=250",
     "LOW_STOCK_THRESHOLD=5",

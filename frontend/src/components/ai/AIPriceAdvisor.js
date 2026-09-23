@@ -109,7 +109,8 @@ export default function AIPriceAdvisor({ product, onApply, onManual }) {
             Suggested range: {money(result.minimumPrice)} – {money(result.maximumPrice)} /{' '}
             {product.unit}
           </p>
-          <span className="badge green">{result.confidence} confidence · service estimate</span>
+          <span className="badge green">{result.confidence} confidence</span>
+          <p>{result.source}</p>
           {result.marketComparison && (
             <p>
               Matching marketplace listings average {money(result.marketComparison.averagePrice)} /{' '}
@@ -141,7 +142,6 @@ export default function AIPriceAdvisor({ product, onApply, onManual }) {
           <h3 className="error-text" role="alert">
             {error}
           </h3>
-          <p>You can continue by entering your own selling price.</p>
           <div className="actions">
             <button type="button" className="btn" onClick={suggest}>
               Try Again

@@ -22,6 +22,7 @@ const schema = z.object({
     .default("7d"),
   FRONTEND_URL: z.string().url().default("http://localhost:5173"),
   AI_SERVICE_URL: z.string().url().default("http://localhost:8000"),
+  AI_PRICE_PROVIDER: z.enum(["marketplace", "external"]).default("marketplace"),
   AI_SERVICE_TIMEOUT_MS: z.coerce
     .number()
     .int()
