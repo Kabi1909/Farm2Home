@@ -9,7 +9,7 @@ import {
 import { checkout, orderQuery, statusInput } from "../validation/schemas.js";
 import { asyncHandler as wrap } from "../utils/asyncHandler.js";
 const router = Router();
-router.use(protect);
+router.use(["/orders", "/farmer/orders"], protect);
 router.param("id", validateId);
 router.post(
   "/orders",
@@ -43,3 +43,4 @@ router.put(
   wrap(controller.status),
 );
 export default router;
+
