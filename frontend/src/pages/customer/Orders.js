@@ -236,6 +236,7 @@ export function OrderDetails() {
           <h2>Handover details</h2>
           <dl className="spec-list">
             {[
+              ['Order reference', order.id],
               ['Farmer', farmers.find((f) => f.id === order.farmerId)?.farm],
               ['Customer', order.customer],
               ['Phone', order.phone],
