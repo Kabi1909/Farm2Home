@@ -8,8 +8,16 @@ import User from "../models/User.js";
 import ApiError from "../utils/ApiError.js";
 import { calculateLine, roundMoney } from "./pricingService.js";
 import { notify } from "./notificationService.js";
+import { orderSteps } from "../utils/constants.js";
+import { inventoryStatus } from "./inventoryService.js";
 
-export async function checkout(customer, input, key, deliveryCharge) {
+export async function checkout(
+  customer,
+  input,
+  key,
+  deliveryCharge,
+  lowStockThreshold = 5,
+) {
   return mongoose.connection.transaction(async (session) => {
     const previous = await Order.find({ customer, checkoutKey: key }).session(
       session,
@@ -34,6 +42,15 @@ export async function checkout(customer, input, key, deliveryCharge) {
           400,
           `${product.name} does not support ${input.fulfillmentMethod}.`,
         );
+      const farm = await FarmerProfile.findOne({
+        user: product.farmer,
+      }).session(session);
+      if (!farm?.[`${input.fulfillmentMethod}Available`]) {
+        throw new ApiError(
+          409,
+          "The farm no longer supports this fulfillment method.",
+        );
+      }
       const remaining = product.quantity - entry.quantity;
       const updated = await Product.updateOne(
         {
@@ -45,14 +62,11 @@ export async function checkout(customer, input, key, deliveryCharge) {
         {
           $inc: { quantity: -entry.quantity, orderCount: 1 },
           $set: {
-            availabilityStatus:
-              remaining === 0
-                ? "Sold Out"
-                : product.isPreOrder
-                  ? "Upcoming Harvest"
-                  : remaining < 5
-                    ? "Low Stock"
-                    : "Available",
+            availabilityStatus: inventoryStatus(
+              remaining,
+              product.isPreOrder,
+              lowStockThreshold,
+            ),
           },
         },
         { session },
@@ -71,7 +85,10 @@ export async function checkout(customer, input, key, deliveryCharge) {
         isPreOrder: product.isPreOrder,
         availableDate: product.availableDate,
       });
-      if (remaining < 5)
+      if (
+        remaining <= lowStockThreshold &&
+        product.quantity > lowStockThreshold
+      )
         await notify(
           product.farmer,
           "low_stock",
@@ -129,14 +146,18 @@ export async function checkout(customer, input, key, deliveryCharge) {
     return created;
   });
 }
-import { orderSteps } from "../utils/constants.js";
 export function canTransition(current, next, fulfillment) {
   if (next === "Cancelled") return current === "Pending";
   const steps = orderSteps(fulfillment),
     index = steps.indexOf(current);
   return index >= 0 && index < steps.length - 1 && steps[index + 1] === next;
 }
-export async function transitionOrder(orderId, actor, next) {
+export async function transitionOrder(
+  orderId,
+  actor,
+  next,
+  lowStockThreshold = 5,
+) {
   return mongoose.connection.transaction(async (session) => {
     const order = await Order.findById(orderId).session(session);
     if (!order) throw new ApiError(404, "Order not found.");
@@ -147,17 +168,36 @@ export async function transitionOrder(orderId, actor, next) {
       throw new ApiError(403, "Only the farmer can progress an order.");
     if (!canTransition(order.status, next, order.fulfillmentMethod))
       throw new ApiError(409, "This status transition is not allowed.");
+    const today = new Date().toISOString().slice(0, 10);
+    if (
+      [
+        "Ready for Pickup",
+        "Out for Delivery",
+        "Delivered",
+        "Completed",
+      ].includes(next) &&
+      order.items.some(
+        (item) =>
+          item.isPreOrder &&
+          item.availableDate?.toISOString().slice(0, 10) > today,
+      )
+    ) {
+      throw new ApiError(
+        409,
+        "This pre-order is not available for fulfillment yet.",
+      );
+    }
     if (next === "Cancelled") {
       for (const item of order.items) {
         const product = await Product.findById(item.product).session(session);
         if (product) {
           product.quantity += item.quantity;
           product.orderCount = Math.max(0, product.orderCount - 1);
-          product.availabilityStatus = product.isPreOrder
-            ? "Upcoming Harvest"
-            : product.quantity < 5
-              ? "Low Stock"
-              : "Available";
+          product.availabilityStatus = inventoryStatus(
+            product.quantity,
+            product.isPreOrder,
+            lowStockThreshold,
+          );
           await product.save({ session });
         }
       }

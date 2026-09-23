@@ -7,6 +7,7 @@ import { respond } from "../utils/asyncHandler.js";
 import { assertOwner } from "../middleware/roleMiddleware.js";
 import { listPage, escapeRegex } from "../utils/pagination.js";
 import { productCreate, productFields } from "../validation/schemas.js";
+import { inventoryStatus } from "../services/inventoryService.js";
 const viewed = new Map();
 export function publicProduct(product) {
   const value = product.toJSON();
@@ -142,7 +143,11 @@ export async function write(req, res) {
       return { url: asset.url, publicId };
     });
     fields.isPreOrder = fields.availabilityStatus === "Upcoming Harvest";
-    if (fields.quantity === 0) fields.availabilityStatus = "Sold Out";
+    fields.availabilityStatus = inventoryStatus(
+      fields.quantity,
+      fields.isPreOrder,
+      req.app.locals.config.LOW_STOCK_THRESHOLD,
+    );
     product.set(fields);
     product.coverImage = fields.images[0];
     await product.save({ session });

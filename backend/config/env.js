@@ -20,6 +20,7 @@ const schema = z.object({
     .max(30000)
     .default(5000),
   DELIVERY_CHARGE: z.coerce.number().min(0).max(10000).default(250),
+  LOW_STOCK_THRESHOLD: z.coerce.number().int().min(0).max(1000000).default(5),
   CLOUDINARY_CLOUD_NAME: z.string().default(""),
   CLOUDINARY_API_KEY: z.string().default(""),
   CLOUDINARY_API_SECRET: z.string().default(""),

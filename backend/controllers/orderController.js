@@ -15,6 +15,7 @@ export async function create(req, res) {
       req.validated.body,
       key,
       req.app.locals.config.DELIVERY_CHARGE,
+      req.app.locals.config.LOW_STOCK_THRESHOLD,
     ),
     "Orders created.",
     201,
@@ -56,6 +57,7 @@ export async function status(req, res) {
       req.params.id,
       req.user,
       req.path.endsWith("/cancel") ? "Cancelled" : req.validated.body.status,
+      req.app.locals.config.LOW_STOCK_THRESHOLD,
     ),
   );
 }
