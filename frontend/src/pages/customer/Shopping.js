@@ -1,6 +1,6 @@
 import { productView } from '../../services/adapters';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   ShoppingBag,
   ArrowRight,
@@ -22,6 +22,7 @@ import {
   Select,
 } from '../../components/common/UI';
 import { ProductGrid } from '../../components/product/ProductCard';
+import OrderDownloadModal from '../../components/order/OrderDownloadModal';
 export function Wishlist() {
   const { wishlist } = useWishlist();
   const { products } = useMarket();
@@ -217,11 +218,13 @@ export function Checkout() {
           if (!validPhone(form.phone)) return setError('Enter a valid Sri Lankan phone number.');
           setBusy(true);
           try {
-            await placeOrder({
+            const created = await placeOrder({
               ...form,
               payment: form.fulfillment === 'delivery' ? 'Cash on Delivery' : 'Pay on Pickup',
             });
-            navigate('/customer/order-success');
+            navigate('/customer/order-success', {
+              state: { downloadOrderIds: created.map((order) => order.id) },
+            });
           } catch (err) {
             setError(err.message);
             setBusy(false);
@@ -369,14 +372,32 @@ export function Checkout() {
 export function OrderSuccess() {
   const { orders, farmers } = useMarket();
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [downloadOpen, setDownloadOpen] = useState(
+    () =>
+      Array.isArray(location.state?.downloadOrderIds) && location.state.downloadOrderIds.length > 0,
+  );
   let ids = [];
   try {
-    ids = JSON.parse(sessionStorage.getItem('f2h:checkoutResult') || '[]');
+    ids =
+      location.state?.downloadOrderIds ||
+      JSON.parse(sessionStorage.getItem('f2h:checkoutResult') || '[]');
   } catch {}
   const placed = orders.filter((o) => ids.includes(o.id) && o.customerId === user.id);
   if (!placed.length) return <EmptyState title="No recent order to show." />;
   return (
     <div className="success-page">
+      {downloadOpen && (
+        <OrderDownloadModal
+          orders={placed}
+          farmers={farmers}
+          onClose={() => {
+            setDownloadOpen(false);
+            navigate(location.pathname, { replace: true, state: null });
+          }}
+        />
+      )}
       <div className="success-icon">
         <CheckCircle2 size={44} />
       </div>

@@ -8,6 +8,20 @@
   --ui-line: #dce5d9;
 }
 
+.order-download-modal {
+  text-align: left;
+  width: min(480px, calc(100% - 32px));
+  border-radius: 18px;
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  border: 1px solid var(--ui-line);
+}
+
+.order-download-modal .actions {
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
 .theme-toggle {
   flex-shrink: 0;
   width: 40px;
