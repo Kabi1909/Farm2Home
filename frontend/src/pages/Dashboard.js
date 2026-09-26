@@ -130,7 +130,7 @@ export default function Dashboard() {
               <Link key={o.id} to={'/' + user.role + '/orders/' + o.id}>
                 <Img src={o.items[0]?.image} alt={o.items[0]?.name} />
                 <div>
-                  <strong>{user.role === 'farmer' ? o.displayName : o.id}</strong>
+                  <strong>{o.displayName}</strong>
                   <small>{o.items.map((i) => i.name).join(', ')}</small>
                 </div>
                 <StockBadge status={o.status} />

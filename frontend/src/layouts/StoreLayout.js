@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useRef, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Sprout,
   Heart,
@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { useAuth, useCart, useWishlist, useNotifications, useUI } from '../context/AppContext';
 import Brand from '../components/common/Brand';
+import ThemeToggle from '../components/common/ThemeToggle';
+import useCardEntrance from '../hooks/useCardEntrance';
 
 export function NotificationDropdown() {
   const [open, setOpen] = useState(false);
@@ -137,6 +139,7 @@ export function Navbar() {
             </button>
           </form>
           <div className="nav-actions">
+            <ThemeToggle />
             {user?.role !== 'farmer' && (
               <>
                 <Link to="/customer/wishlist" aria-label="Wishlist" className="icon-btn">
@@ -232,9 +235,9 @@ export function Navbar() {
         {open && (
           <nav className="mobile-nav" onClick={() => setOpen(false)}>
             {links.map(([to, label]) => (
-              <Link key={to} to={to}>
+              <NavLink key={to} to={to} end={to === '/'}>
                 {label}
-              </Link>
+              </NavLink>
             ))}
             <Link to={user ? '/' + user.role + '/dashboard' : '/login'}>
               {user ? 'My dashboard' : 'Login'}
@@ -316,13 +319,16 @@ export function Footer() {
   );
 }
 export default function StoreLayout() {
+  const content = useRef(null);
+  const { pathname } = useLocation();
+  useCardEntrance(content, pathname);
   return (
     <>
       <a href="#main" className="skip-link">
         Skip to content
       </a>
       <Navbar />
-      <div id="main">
+      <div id="main" ref={content}>
         <Outlet />
       </div>
       <Footer />

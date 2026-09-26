@@ -1,0 +1,428 @@
+:root {
+  --ui-page: #f8faf5;
+  --ui-surface: #fff;
+  --ui-raised: #edf4e7;
+  --ui-text: #263029;
+  --ui-muted: #627267;
+  --ui-accent: #2f6b3b;
+  --ui-line: #dce5d9;
+}
+
+.theme-toggle {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--ui-line);
+  border-radius: 50%;
+  background: var(--ui-raised);
+  color: var(--ui-accent);
+}
+
+:root[data-theme='dark'] :is(.support-card, .support-help, .quantity, .publish-preview) {
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  border-color: var(--ui-line);
+}
+
+:root[data-theme='dark'] :is(.field > span, .checkbox, .product-farmer > span, .results-bar label) {
+  color: var(--ui-muted);
+}
+
+:root[data-theme='dark'] .shop-promo :is(h3, p) {
+  color: white;
+}
+
+.desktop-nav a,
+.mobile-nav a {
+  border-radius: 9px;
+  transition:
+    background 220ms ease,
+    color 220ms ease;
+}
+
+.desktop-nav a {
+  padding: 10px 9px;
+}
+
+.dashboard-content :is(.order-card, .profile-form, .management-product, .review-card) {
+  border-radius: 18px;
+  box-shadow: 0 8px 28px rgb(33 78 44 / 6%);
+}
+
+.dashboard-content :is(.order-card, .management-product) > .between:first-child {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--ui-line);
+  margin-bottom: 18px;
+}
+
+.dashboard-content .field > span {
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.dashboard-content .field :is(input, select, textarea) {
+  border-radius: 10px;
+  border-color: var(--ui-line);
+}
+
+.dashboard-content .field :is(input, select) {
+  min-height: 44px;
+}
+
+.dashboard-content .tabs {
+  padding: 8px;
+  border: 1px solid var(--ui-line);
+  border-radius: 14px;
+  background: var(--ui-surface);
+}
+
+.dashboard-content .icon-btn {
+  border-radius: 10px;
+}
+
+.nav-inner {
+  gap: 16px;
+}
+
+.desktop-nav {
+  gap: 4px;
+  margin-left: 0;
+}
+
+.desktop-nav a:hover,
+.desktop-nav a.active,
+.mobile-nav a:hover,
+.mobile-nav a.active {
+  background: var(--ui-raised);
+  color: var(--ui-accent);
+}
+
+.desktop-nav a.active::after {
+  left: 20%;
+  right: 20%;
+  bottom: 2px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--ui-accent);
+}
+
+:is(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid #d99a2b;
+  outline-offset: 3px;
+}
+
+/* A single, slow 2D entrance. Nothing waits for animation to become usable. */
+.page-element-enter {
+  animation: page-element-arrive 780ms cubic-bezier(0.2, 0.7, 0.3, 1) var(--card-delay, 0ms) both;
+}
+
+.page-element-enter:focus-within {
+  animation: none;
+}
+
+@keyframes page-element-arrive {
+  from {
+    opacity: 0.3;
+    translate: 0 18px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* Dark green surfaces preserve the agricultural palette and image colours. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --ui-page: #101a15;
+  --ui-surface: #19271f;
+  --ui-raised: #25392c;
+  --ui-text: #edf4e9;
+  --ui-muted: #b2c3b4;
+  --ui-accent: #a1d895;
+  --ui-line: #3b5040;
+  --green: #a1d895;
+  --forest: #e3f1db;
+  --sage: #25392c;
+  --muted: #b2c3b4;
+  --border: #3b5040;
+  --cream: #101a15;
+  color: var(--ui-text);
+  background: var(--ui-page);
+}
+
+:root[data-theme='dark'] body,
+:root[data-theme='dark'] #root,
+:root[data-theme='dark'] #main {
+  background: var(--ui-page);
+  color: var(--ui-text);
+}
+
+:root[data-theme='dark']
+  :is(
+    .navbar,
+    .mobile-nav,
+    .nav-search,
+    .account-popover,
+    .notification-popover,
+    .reference-footer,
+    .dashboard-sidebar,
+    .panel,
+    .stat-card,
+    .review-card,
+    .product-card,
+    .product-body,
+    .category-card,
+    .category-caption,
+    .farmer-card,
+    .farmer-card-body,
+    .filters,
+    .directory-filters,
+    .auth-form,
+    .empty-state,
+    .modal,
+    .modal-content,
+    .modal-panel,
+    .toast,
+    .contact-details,
+    .ai-advisor,
+    .farm-profile-header,
+    .order-summary,
+    .pagination button,
+    .view-buttons button,
+    .image-uploader,
+    .upload-zone,
+    .reference-prices,
+    .season-popular,
+    .testimonial-grid > article,
+    .how-grid > div
+  ) {
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  border-color: var(--ui-line);
+  box-shadow: 0 6px 22px rgb(0 0 0 / 12%);
+}
+
+:root[data-theme='dark']
+  :is(
+    .dashboard-shell,
+    .reference-home,
+    .reference-shop,
+    .categories-page,
+    .reference-farmers,
+    .contact-page,
+    .auth-page
+  ) {
+  background: var(--ui-page);
+  color: var(--ui-text);
+  --dashboard-ink: #e3f1db;
+  --dashboard-muted: #b2c3b4;
+}
+
+:root[data-theme='dark']
+  :is(
+    .dashboard-shell .page-heading,
+    .sidebar-bottom > div,
+    .notice,
+    .reference-benefits,
+    .farmer-community-stats,
+    .ai-inputs,
+    .prediction-result,
+    .fulfillment-options label,
+    .role-picker button,
+    .stat-icon,
+    .category-symbol
+  ) {
+  background: var(--ui-raised);
+  color: var(--ui-text);
+  border-color: var(--ui-line);
+}
+
+:root[data-theme='dark']
+  :is(h1, h2, h3, h4, strong, label, legend):not(
+    :where(.cinematic-hero *, .farm-banner *, .auth-visual *, .reference-cta *, .contact-quote *)
+  ) {
+  color: var(--ui-text);
+}
+
+:root[data-theme='dark']
+  :is(
+    p,
+    small,
+    .muted,
+    .location,
+    .product-category,
+    .product-farmer,
+    .category-caption > div > span,
+    .rating > span,
+    .breadcrumbs,
+    .dashboard-identity small,
+    .stat-card > div,
+    .sidebar-bottom > a,
+    .sidebar-bottom > button,
+    .footer-bottom,
+    .spec-list dt
+  ):not(
+    :where(.cinematic-hero *, .farm-banner *, .auth-visual *, .reference-cta *, .contact-quote *)
+  ) {
+  color: var(--ui-muted);
+}
+
+:root[data-theme='dark']
+  :is(.eyebrow, .price, .product-stock, .text-link, .brand strong, .stat-icon) {
+  color: var(--ui-accent);
+}
+
+:root[data-theme='dark'] :is(input, select, textarea):not(:where(.cinematic-hero *)) {
+  background: #142018;
+  color: var(--ui-text);
+  border-color: #536b59;
+  accent-color: #9bd18e;
+}
+
+:root[data-theme='dark'] :is(input, textarea)::placeholder {
+  color: #a5b5a6;
+  opacity: 1;
+}
+
+:root[data-theme='dark'] .nav-search input {
+  background: transparent;
+}
+
+:root[data-theme='dark'] :is(.btn, .dashboard-shell .btn):not(:where(.cinematic-hero *)) {
+  background: #377d48;
+  border-color: #67a574;
+  color: #fff;
+}
+
+:root[data-theme='dark']
+  :is(.btn, .dashboard-shell .btn):hover:not(:disabled):not(:where(.cinematic-hero *)) {
+  background: #2f6b3b;
+}
+
+:root[data-theme='dark']
+  :is(.btn.secondary, .dashboard-shell .btn.secondary, .tabs button):not(
+    :where(.cinematic-hero *)
+  ) {
+  background: var(--ui-surface);
+  color: var(--ui-accent);
+  border-color: var(--ui-line);
+}
+
+:root[data-theme='dark']
+  :is(
+    .tabs button.active,
+    .role-picker button.selected,
+    .pagination button.active,
+    .view-buttons button.active,
+    .dashboard-sidebar nav > a.active
+  ) {
+  background: #345c3d;
+  color: #f2f9ef;
+  border-color: #90bc85;
+}
+
+:root[data-theme='dark']
+  :is(.dashboard-sidebar nav > a, .account-trigger, .icon-btn, .nav-search > button) {
+  color: var(--ui-text);
+}
+
+:root[data-theme='dark']
+  :is(.dashboard-sidebar nav > a:hover, .recent-orders > a:hover, .account-popover a:hover) {
+  background: var(--ui-raised);
+}
+
+:root[data-theme='dark']
+  :is(.badge.green, .farmer-crops span, .detail-tags span, .filter-chips button) {
+  background: #294a32;
+  color: #c3edb7;
+}
+
+:root[data-theme='dark'] .badge.amber {
+  background: #514022;
+  color: #ffe0a1;
+}
+
+:root[data-theme='dark'] :is(.error-text, .danger) {
+  color: #ffb5a3;
+}
+
+:root[data-theme='dark']
+  :is(.stat-card:nth-child(3n + 2) .stat-icon, .stat-card:nth-child(3n) .stat-icon) {
+  background: #3c3826;
+  color: #edcf91;
+}
+
+:root[data-theme='dark']
+  :is(.recent-orders > a, .dashboard-identity, .spec-list > div, .cart-item, .checkout-line) {
+  border-color: var(--ui-line);
+}
+
+/* Recharts SVG labels inherit a readable tone; geographic tiles retain their colours. */
+:root[data-theme='dark'] .recharts-text {
+  fill: #c0d1c0;
+}
+
+:root[data-theme='dark'] .recharts-cartesian-grid line {
+  stroke: #3b5040;
+}
+
+:root[data-theme='dark'] .recharts-default-tooltip {
+  background: #19271f !important;
+  border-color: #536b59 !important;
+  color: #edf4e9 !important;
+}
+
+:root[data-theme='dark'] .recharts-tooltip-item {
+  color: #b8e6aa !important;
+}
+
+/* Keep the photographic Home hero's original text and search contrast. */
+:root[data-theme='dark'] .cinematic-hero {
+  color-scheme: light;
+  color: #263029;
+  --green: #2f6b3b;
+  --forest: #214e2c;
+  --muted: #687069;
+  --border: #dce5d9;
+}
+
+:root[data-theme='dark'] .cinematic-hero :is(input, select, label) {
+  color: #526076;
+}
+
+:root[data-theme='dark'] .cinematic-hero input::placeholder {
+  color: #657084;
+}
+
+@media (max-width: 1180px) {
+  .desktop-nav {
+    gap: 3px;
+  }
+  .desktop-nav a {
+    padding-inline: 7px;
+  }
+  .nav-search {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .nav-actions {
+    gap: 5px;
+  }
+  .theme-toggle {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-element-enter {
+    animation: none;
+  }
+  .desktop-nav a,
+  .mobile-nav a {
+    transition: none;
+  }
+}

@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { NavLink, Outlet, Link, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink, Outlet, Link } from 'react-router-dom';
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -15,14 +15,10 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useAuth, useNotifications } from '../context/AppContext';
-import useCardEntrance from '../hooks/useCardEntrance';
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const { notifications } = useNotifications();
   const [open, setOpen] = useState(false);
-  const shell = useRef(null);
-  const { pathname } = useLocation();
-  useCardEntrance(shell, pathname);
   const farmer = user.role === 'farmer';
   const links = farmer
     ? [
@@ -43,7 +39,7 @@ export default function DashboardLayout() {
         ['profile', 'My profile', User],
       ];
   return (
-    <div className="container dashboard-shell" ref={shell}>
+    <div className="container dashboard-shell">
       <button
         className="dashboard-menu btn secondary"
         aria-expanded={open}

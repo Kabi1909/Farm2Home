@@ -9,6 +9,26 @@ const cards = [
   '.notice',
   '.ai-advisor',
   '.sidebar-bottom > div',
+  '.category-card',
+  '.farmer-card',
+  '.section-heading',
+  '.page-heading',
+  '.category-heading',
+  '.farm-profile-header',
+  '.product-detail',
+  '.auth-form',
+  '.directory-filters',
+  '.reference-benefits .container > div',
+  '.how-grid > div',
+  '.testimonial-grid > article',
+  '.reference-prices > div',
+  '.season-popular',
+  '.reference-cta',
+  '.banner-copy',
+  '.support-card',
+  '.shop-promo',
+  '.contact-quote',
+  '.reference-prices > a',
 ].join(', ');
 
 // Animate each mounted card once. Content stays visible without browser support.
@@ -28,8 +48,8 @@ export default function useCardEntrance(rootRef, route) {
           observer.unobserve(target);
           pending.delete(target);
           if (!root.contains(target) || target.contains(document.activeElement)) return;
-          target.style.setProperty('--card-delay', `${Math.min(stagger++, 4) * 55}ms`);
-          target.classList.add('dashboard-card-enter');
+          target.style.setProperty('--card-delay', `${Math.min(stagger++, 4) * 80}ms`);
+          target.classList.add('page-element-enter');
         });
       },
       { threshold: 0.04 },
@@ -43,7 +63,7 @@ export default function useCardEntrance(rootRef, route) {
         }
       });
       root.querySelectorAll(cards).forEach((card) => {
-        if (seen.has(card)) return;
+        if (seen.has(card) || card.closest('.cinematic-hero')) return;
         seen.add(card);
         pending.add(card);
         observer.observe(card);
@@ -51,8 +71,8 @@ export default function useCardEntrance(rootRef, route) {
     }
 
     function finish(event) {
-      if (event.animationName !== 'dashboard-card-arrive') return;
-      event.target.classList.remove('dashboard-card-enter');
+      if (event.animationName !== 'page-element-arrive') return;
+      event.target.classList.remove('page-element-enter');
       event.target.style.removeProperty('--card-delay');
     }
 
@@ -75,8 +95,8 @@ export default function useCardEntrance(rootRef, route) {
       changes.disconnect();
       pending.clear();
       root.removeEventListener('animationend', finish);
-      root.querySelectorAll('.dashboard-card-enter').forEach((card) => {
-        card.classList.remove('dashboard-card-enter');
+      root.querySelectorAll('.page-element-enter').forEach((card) => {
+        card.classList.remove('page-element-enter');
         card.style.removeProperty('--card-delay');
       });
     }

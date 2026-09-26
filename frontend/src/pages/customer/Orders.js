@@ -59,7 +59,7 @@ export function OrderActions({ order }) {
       {confirm && (
         <ConfirmDialog
           title={confirm === 'Cancelled' ? 'Cancel this order?' : 'Update order status?'}
-          description={`${user.role === 'farmer' ? order.displayName : 'Order ' + order.id} will be marked ${confirm.toLowerCase()}.${confirm === 'Cancelled' ? ' Reserved stock will be restored.' : ''}`}
+          description={`${order.displayName} will be marked ${confirm.toLowerCase()}.${confirm === 'Cancelled' ? ' Reserved stock will be restored.' : ''}`}
           onConfirm={async () => {
             try {
               await changeStatus(order.id, confirm);
@@ -124,7 +124,7 @@ export default function Orders() {
               <div className="between">
                 <div>
                   <Link to={'/' + user.role + '/orders/' + o.id}>
-                    <h3>{farmer ? o.displayName : o.id}</h3>
+                    <h3>{o.displayName}</h3>
                   </Link>
                   <p>
                     {o.date} ·{' '}
@@ -191,7 +191,7 @@ export function OrderDetails() {
     <>
       <PageHeading
         eyebrow="EVERY STEP, A LITTLE CLOSER"
-        title={user.role === 'farmer' ? order.displayName : 'Order ' + order.id}
+        title={order.displayName}
         description={`Placed ${order.date} · ${order.fulfillment === 'pickup' ? 'Farm pickup' : 'Home delivery'}`}
         action={<StockBadge status={order.status} />}
       />

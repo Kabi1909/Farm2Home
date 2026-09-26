@@ -6,6 +6,7 @@ import { Providers } from './context/AppContext';
 import './index.css';
 import './reference.css';
 import './dashboard.css';
+import './appearance.css';
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
