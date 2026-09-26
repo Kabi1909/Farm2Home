@@ -25,7 +25,9 @@ export function StatCard({ label, value, Icon = Package, note }) {
     <div className="stat-card">
       <div>
         <span>{label}</span>
-        <Icon size={20} />
+        <span className="stat-icon" aria-hidden="true">
+          <Icon size={21} />
+        </span>
       </div>
       <strong>{value}</strong>
       {note && <small>{note}</small>}
