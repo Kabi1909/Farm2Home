@@ -31,8 +31,9 @@ test('saved appearance overrides the device preference before rendering', () => 
   }
 });
 
-test('first visit, invalid preferences and blocked storage use the device appearance', () => {
-  assert.equal(loadTheme(null, true).dataset.theme, 'dark');
+test('first visit, invalid preferences and blocked storage default to light regardless of device appearance', () => {
+  assert.equal(loadTheme(null, true).dataset.theme, 'light');
+  assert.equal(loadTheme(null, false).dataset.theme, 'light');
   assert.equal(loadTheme('invalid', false).dataset.theme, 'light');
-  assert.equal(loadTheme(null, true, true).dataset.theme, 'dark');
+  assert.equal(loadTheme(null, true, true).dataset.theme, 'light');
 });

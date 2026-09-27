@@ -14,7 +14,6 @@ export default function ThemeToggle() {
   }, [theme]);
 
   useEffect(() => {
-    const preference = window.matchMedia('(prefers-color-scheme: dark)');
     const sync = () => {
       let saved;
       try {
@@ -24,7 +23,7 @@ export default function ThemeToggle() {
         if (manual.current) return;
       }
       if (saved === 'light' || saved === 'dark') setTheme(saved);
-      else if (!manual.current) setTheme(preference.matches ? 'dark' : 'light');
+      else if (!manual.current) setTheme('light');
     };
     const storageChanged = (event) => {
       if (event.key === 'f2h:theme' || event.key === null) {
@@ -32,10 +31,8 @@ export default function ThemeToggle() {
         sync();
       }
     };
-    preference.addEventListener('change', sync);
     window.addEventListener('storage', storageChanged);
     return () => {
-      preference.removeEventListener('change', sync);
       window.removeEventListener('storage', storageChanged);
     };
   }, []);

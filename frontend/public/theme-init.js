@@ -7,7 +7,7 @@
     // Private browsing can disable storage.
   }
   if (theme !== 'light' && theme !== 'dark') {
-    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    theme = 'light';
   }
   document.documentElement.dataset.theme = theme;
   document.documentElement.style.colorScheme = theme;
