@@ -391,6 +391,86 @@
   color: #b8e6aa !important;
 }
 
+/* AI pricing uses its own amber treatment so it stays distinct from farm actions. */
+:root[data-theme='dark'] .ai-advisor {
+  background: #422006;
+  border-color: #92400e;
+  color: #fde68a;
+}
+
+:root[data-theme='dark'] .ai-title > span:first-child {
+  background: #422006;
+  border: 1px solid #92400e;
+  color: #fbbf24;
+}
+
+:root[data-theme='dark'] .ai-title h2,
+:root[data-theme='dark'] .ai-advisor :is(.ai-price, .ai-inputs strong) {
+  color: #fde68a;
+}
+
+:root[data-theme='dark'] .ai-advisor > p,
+:root[data-theme='dark']
+  .ai-advisor
+  :is(.ai-inputs small, .ai-result p, .price-range, .ai-disclaimer) {
+  color: #fcd34d;
+}
+
+:root[data-theme='dark'] .ai-advisor .eyebrow {
+  color: #fcd34d;
+}
+
+:root[data-theme='dark'] .ai-title > .badge,
+:root[data-theme='dark'] .ai-result > .badge {
+  background: #92400e;
+  border-color: #fbbf24;
+  color: #fde68a;
+}
+
+:root[data-theme='dark'] .ai-inputs {
+  border-color: #92400e;
+}
+
+:root[data-theme='dark'] .ai-result {
+  background: #422006;
+  border-color: #92400e;
+}
+
+:root[data-theme='dark'] .ai-price small {
+  color: #fcd34d;
+}
+
+:root[data-theme='dark'] .ai-advisor :is(.btn, .btn.secondary, .icon-btn) {
+  border-color: #fbbf24;
+  color: #422006;
+  background: #fbbf24;
+}
+
+:root[data-theme='dark'] .ai-advisor :is(.btn, .btn.secondary, .icon-btn):hover:not(:disabled) {
+  background: #fde68a;
+  border-color: #fde68a;
+  color: #422006;
+}
+
+:root[data-theme='dark'] .ai-advisor .btn.secondary {
+  background: #422006;
+  border-color: #92400e;
+  color: #fde68a;
+}
+
+:root[data-theme='dark'] .ai-advisor .btn.secondary:hover:not(:disabled) {
+  background: #92400e;
+  border-color: #fbbf24;
+  color: #fde68a;
+}
+
+/* Keep unavailable actions visibly inactive without changing their meaning. */
+:root[data-theme='dark'] .ai-advisor :is(.btn, .icon-btn):disabled {
+  background: #422006;
+  border-color: #92400e;
+  color: #fcd34d;
+}
+
 /* Keep the photographic Home hero's original text and search contrast. */
 :root[data-theme='dark'] .cinematic-hero {
   color-scheme: light;
