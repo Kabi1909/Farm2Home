@@ -5,8 +5,10 @@ import { connectDB } from "./config/db.js";
 import { createApp } from "./app.js";
 import { once } from "node:events";
 import { startupMessage } from "./utils/startupError.js";
+import { warnIfEmailServiceUnavailable } from "./services/emailService.js";
 try {
   const config = loadConfig();
+  warnIfEmailServiceUnavailable(config);
   await connectDB(config.MONGO_URI);
   const { default: routes } = await import("./routes/index.js");
   const server = createApp(config, routes).listen(config.PORT);

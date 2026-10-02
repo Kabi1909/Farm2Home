@@ -34,6 +34,10 @@ const schema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().default(""),
   CLOUDINARY_API_KEY: z.string().default(""),
   CLOUDINARY_API_SECRET: z.string().default(""),
+  SMTP_SERVICE: z.string().trim().default(""),
+  SMTP_USER: z.string().trim().default(""),
+  SMTP_PASS: z.string().default(""),
+  CONTACT_RECEIVER_EMAIL: z.string().trim().default(""),
 });
 export function loadConfig(values = process.env) {
   const result = schema.safeParse(values);

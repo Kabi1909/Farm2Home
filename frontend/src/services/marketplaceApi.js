@@ -98,6 +98,9 @@ export function createMarketplaceApi(client = api, tokenStore = globalThis.sessi
       recent: (params) => page(client.get('/prices/recent', { params })),
       trends: (params) => page(client.get('/prices/trends', { params })),
     },
+    contact: {
+      send: (values) => data(client.post('/contact', values)),
+    },
     suggestPrice: (values, signal) => data(client.post('/ai/price-suggestion', values, { signal })),
     upload: (files, kind = 'product') => {
       const form = new FormData();

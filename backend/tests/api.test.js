@@ -185,6 +185,59 @@ test(
   },
 );
 
+test("contact messages validate input and deliver through the configured server transport", async () => {
+  const originalConfig = {
+    SMTP_SERVICE: config.SMTP_SERVICE,
+    SMTP_USER: config.SMTP_USER,
+    SMTP_PASS: config.SMTP_PASS,
+    CONTACT_RECEIVER_EMAIL: config.CONTACT_RECEIVER_EMAIL,
+  };
+  const messages = [];
+  assert.equal(
+    (
+      await api.post("/api/contact").send({
+        name: "Contact visitor",
+        email: "visitor@example.test",
+        subject: "Order support",
+        message: "Could you help with my delivery?",
+      })
+    ).status,
+    503,
+  );
+  Object.assign(config, {
+    SMTP_SERVICE: "gmail",
+    SMTP_USER: "farm2home@example.test",
+    SMTP_PASS: "test-app-password",
+    CONTACT_RECEIVER_EMAIL: "support@example.test",
+  });
+  app.locals.contactMailTransport = {
+    sendMail: async (message) => messages.push(message),
+  };
+  try {
+    assert.equal((await api.post("/api/contact").send({})).status, 400);
+    const response = await api.post("/api/contact").send({
+      name: "Contact visitor",
+      email: "visitor@example.test",
+      subject: "Order support",
+      message: "Could you help with my delivery?",
+    });
+    assert.equal(response.status, 200);
+    assert.equal(response.body.success, true);
+    assert.equal(
+      response.body.message,
+      "Your message has been sent successfully.",
+    );
+    assert.equal(messages.length, 1);
+    assert.equal(messages[0].from, "farm2home@example.test");
+    assert.equal(messages[0].to, "support@example.test");
+    assert.equal(messages[0].replyTo, "visitor@example.test");
+    assert.match(messages[0].text, /Could you help with my delivery/);
+  } finally {
+    Object.assign(config, originalConfig);
+    delete app.locals.contactMailTransport;
+  }
+});
+
 test("registration, authentication and role enforcement", async () => {
   farmer = await register("farmer", "farmer-one");
   otherFarmer = await register("farmer", "farmer-two");

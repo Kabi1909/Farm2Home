@@ -1,8 +1,40 @@
+import { useState } from 'react';
 import { Mail, Phone, MapPin, Send, Leaf } from 'lucide-react';
 import FarmBanner from '../../components/common/FarmBanner';
 import FarmMap from '../../components/map/FarmMap';
 import { Field, Select } from '../../components/common/UI';
+import { marketplaceApi } from '../../services/marketplaceApi.js';
+import { useUI } from '../../context/AppContext';
 export default function Contact() {
+  const { notify } = useUI();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  async function submit(event) {
+    event.preventDefault();
+    if (submitting) return;
+
+    setSubmitting(true);
+    setSubmitError('');
+    const form = event.currentTarget;
+    const values = Object.fromEntries(new FormData(form));
+
+    try {
+      await marketplaceApi.contact.send(values);
+      form.reset();
+      notify('Your message has been sent successfully.');
+    } catch (error) {
+      const validationMessage = error.fields?.map((field) => field.message).join(' ');
+      setSubmitError(
+        error.status === 400 && validationMessage
+          ? validationMessage
+          : 'Unable to send your message. Please try again.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <main>
       <FarmBanner
@@ -15,11 +47,8 @@ export default function Contact() {
         <div className="contact-grid">
           <section className="panel">
             <h2>Send Us a Message</h2>
-            <p>
-              Message submission is not available yet. Contact details will appear here when
-              published.
-            </p>
-            <form onSubmit={(event) => event.preventDefault()}>
+            <p>Fill in the form below and we’ll get back to you as soon as possible.</p>
+            <form onSubmit={submit}>
               <fieldset style={{ border: 0, padding: 0 }}>
                 <Field
                   label="Full Name *"
@@ -56,9 +85,14 @@ export default function Contact() {
                     placeholder="Write your message here..."
                   />
                 </Field>
-                <button className="btn full">
+                {submitError && (
+                  <p className="error-text" role="alert">
+                    {submitError}
+                  </p>
+                )}
+                <button className="btn full" disabled={submitting}>
                   <Send size={16} />
-                  Send Message
+                  {submitting ? 'Sending…' : 'Send Message'}
                 </button>
               </fieldset>
             </form>

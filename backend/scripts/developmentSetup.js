@@ -29,6 +29,11 @@ export async function prepareDevelopmentEnv(directory = backendDirectory) {
     "AI_SERVICE_TIMEOUT_MS=5000",
     "DELIVERY_CHARGE=250",
     "LOW_STOCK_THRESHOLD=5",
+    "# Optional Contact email service. Add Gmail App Password credentials to enable it.",
+    "SMTP_SERVICE=",
+    "SMTP_USER=",
+    "SMTP_PASS=",
+    "CONTACT_RECEIVER_EMAIL=",
     "",
   ].join("\n");
   try {

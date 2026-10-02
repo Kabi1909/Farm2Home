@@ -245,6 +245,18 @@ export const reviewInput = z
     comment: text(1500),
   })
   .strict();
+export const contactInput = z
+  .object({
+    name: text(120),
+    email: z.string().trim().toLowerCase().email().max(254),
+    phone: z.string().trim().max(40).optional(),
+    subject: text(160).refine(
+      (value) => !/[\r\n]/.test(value),
+      "Invalid subject.",
+    ),
+    message: text(5000),
+  })
+  .strict();
 export const aiInput = z
   .object({
     product: text(),
