@@ -20,7 +20,7 @@ export default function Contact() {
               published.
             </p>
             <form onSubmit={(event) => event.preventDefault()}>
-              <fieldset disabled style={{ border: 0, padding: 0 }}>
+              <fieldset style={{ border: 0, padding: 0 }}>
                 <Field
                   label="Full Name *"
                   name="name"
